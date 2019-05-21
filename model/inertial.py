@@ -110,7 +110,7 @@ def model_fn(features, labels, mode, params):
     features = tf.reshape(features, [params.batch_size, params.seq_length, 12])
 
     # Model
-    logits = model_pool_4(features, params)
+    logits = model(features, params)
 
     # If necessary, slice last sequence step for logits
     final_logits = logits[:,-1,:] if logits.get_shape().ndims == 3 else logits
