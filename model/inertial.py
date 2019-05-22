@@ -3,13 +3,15 @@ import itertools
 import numpy as np
 import tensorflow as tf
 import best_checkpoint_exporter
+import resnet
+import small_cnn
 from tensorflow.python.platform import gfile
 
 
 NUM_SHARDS = 10
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_integer(
-    name='batch_size', default=64, help='Batch size used for training.')
+    name='batch_size', default=32, help='Batch size used for training.')
 tf.app.flags.DEFINE_string(
     name='eval_dir', default='../data/eval', help='Directory for eval data.')
 tf.app.flags.DEFINE_enum(
@@ -45,14 +47,24 @@ def run_experiment(arg=None):
 
     # Model parameters
     params = tf.contrib.training.HParams(
-        base_learning_rate=3e-3,
+        base_learning_rate=3e-4,
         batch_size=FLAGS.batch_size,
         decay_rate=0.9,
         dropout=0.5,
         gradient_clipping_norm=10.0,
         l2_lambda=1e-4,
         num_classes=2,
-        num_lstm=64,
+        resnet_block_sizes=[3, 4, 6, 3],
+        resnet_block_strides=[1, 2, 2, 2],
+        resnet_conv_stride=2,
+        resnet_first_pool_size=2,
+        resnet_first_pool_stride=2,
+        resnet_kernel_size=4,
+        resnet_num_filters=64,
+        small_kernel_size=10,
+        small_num_filters=[64, 64, 128, 128, 256, 256, 512],
+        small_pool_size=2,
+        num_lstm=128,
         seq_length=FLAGS.seq_length,
         steps_per_epoch=steps_per_epoch)
 
@@ -71,7 +83,7 @@ def run_experiment(arg=None):
 
     # Exporters
     best_exporter = best_checkpoint_exporter.BestCheckpointExporter(
-        score_metric='metrics/accuracy',
+        score_metric='metrics/unweighted_average_recall',
         compare_fn=lambda x,y: x.score > y.score,
         sort_key_fn=lambda x: -x.score)
 
@@ -110,7 +122,9 @@ def model_fn(features, labels, mode, params):
     features = tf.reshape(features, [params.batch_size, params.seq_length, 12])
 
     # Model
-    logits = model(features, params)
+    logits = resnet.Model(params)(features, params) # need --use_sequence_loss=False
+    # logits = small_cnn.Model(params)(features, params) # need --use_sequence_loss=False
+    # logits = kyritsis.Model(params)(features, params) # need --use_sequence_loss=True --seq_pool=4
 
     # If necessary, slice last sequence step for logits
     final_logits = logits[:,-1,:] if logits.get_shape().ndims == 3 else logits
@@ -131,7 +145,7 @@ def model_fn(features, labels, mode, params):
     # If necessary, slice last sequence step for labels
     final_labels = labels[:,-1] if labels.get_shape().ndims == 2 else labels
 
-    if logits.get_shape().ndims == 3:
+    if labels.get_shape().ndims == 2:
         seq_length = int(FLAGS.seq_length / FLAGS.seq_pool)
         # If seq pooling performed in model, slice the labels as well
         if FLAGS.seq_pool > 1:
@@ -238,15 +252,15 @@ def model_fn(features, labels, mode, params):
     final_labels = tf.cast(final_labels, tf.int64)
     accuracy = tf.metrics.accuracy(
         labels=final_labels, predictions=predictions['classes'])
-    mean_per_class_accuracy = tf.metrics.mean_per_class_accuracy(
+    unweighted_average_recall = tf.metrics.mean_per_class_accuracy(
         labels=final_labels, predictions=predictions['classes'],
         num_classes=params.num_classes)
     tf.summary.scalar('metrics/accuracy', accuracy[1])
-    tf.summary.scalar('metrics/mean_per_class_accuracy',
-        tf.reduce_mean(mean_per_class_accuracy[1]))
+    tf.summary.scalar('metrics/unweighted_average_recall',
+        tf.reduce_mean(unweighted_average_recall[1]))
     metrics = {
         'metrics/accuracy': accuracy,
-        'metrics/mean_per_class_accuracy': mean_per_class_accuracy}
+        'metrics/unweighted_average_recall': unweighted_average_recall}
 
     # Calculate class-specific metrics
     for i in range(params.num_classes):
@@ -265,52 +279,6 @@ def model_fn(features, labels, mode, params):
         loss=loss,
         train_op=train_op,
         eval_metric_ops=metrics)
-
-
-def model_pool_4(inputs, params):
-    inputs = tf.keras.layers.Conv1D(
-        filters=64,
-        kernel_size=10,
-        padding='same',
-        activation=tf.nn.relu)(inputs)
-    inputs = tf.keras.layers.MaxPool1D(
-        pool_size=2)(inputs)
-    inputs = tf.keras.layers.Conv1D(
-        filters=128,
-        kernel_size=10,
-        padding='same',
-        activation=tf.nn.relu)(inputs)
-    inputs = tf.keras.layers.MaxPool1D(
-        pool_size=2)(inputs)
-    inputs = tf.keras.layers.Dropout(params.dropout)(inputs)
-    inputs = tf.keras.layers.Dense(32)(inputs)
-    inputs = tf.keras.layers.LSTM(
-            params.num_lstm, return_sequences=True)(inputs)
-    inputs = tf.keras.layers.LSTM(
-            params.num_lstm, return_sequences=True)(inputs)
-    inputs = tf.keras.layers.Dense(params.num_classes)(inputs)
-    return inputs
-
-
-def model(inputs, params):
-    inputs = tf.keras.layers.Conv1D(
-        filters=64,
-        kernel_size=10,
-        padding='same',
-        activation=tf.nn.relu)(inputs)
-    inputs = tf.keras.layers.Conv1D(
-        filters=128,
-        kernel_size=10,
-        padding='same',
-        activation=tf.nn.relu)(inputs)
-    inputs = tf.keras.layers.Dropout(params.dropout)(inputs)
-    inputs = tf.keras.layers.Dense(32)(inputs)
-    inputs = tf.keras.layers.LSTM(
-            params.num_lstm, return_sequences=True)(inputs)
-    inputs = tf.keras.layers.LSTM(
-            params.num_lstm, return_sequences=True)(inputs)
-    inputs = tf.keras.layers.Dense(params.num_classes)(inputs)
-    return inputs
 
 
 def input_fn(is_training, data_dir):
@@ -343,8 +311,8 @@ def input_fn(is_training, data_dir):
             .map(map_func=_get_input_parser(table))
             .window(size=FLAGS.seq_length, shift=shift, drop_remainder=True)
             .flat_map(lambda f_w, l_w: tf.data.Dataset.zip(
-                (f_w.batch(FLAGS.seq_length), l_w.batch(FLAGS.seq_length)))),
-            #.map(map_func=_get_transformation_parser(is_training)),
+                (f_w.batch(FLAGS.seq_length), l_w.batch(FLAGS.seq_length))))
+            .map(map_func=_get_transformation_parser(is_training)),
         cycle_length=1)
     if is_training:
         dataset = dataset.shuffle(100000).repeat()
