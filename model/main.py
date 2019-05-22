@@ -5,6 +5,7 @@ import tensorflow as tf
 import best_checkpoint_exporter
 import resnet
 import small_cnn
+import kyritsis
 from tensorflow.python.platform import gfile
 
 
