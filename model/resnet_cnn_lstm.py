@@ -7,6 +7,7 @@ SCOPE = "resnet_cnn"
 BATCH_NORM_DECAY = 0.997
 BATCH_NORM_EPSILON = 1e-5
 
+# ~ 78% eval
 
 def batch_norm(inputs):
     """Performs a batch normalization using a standard set of parameters."""
@@ -145,6 +146,7 @@ class Model(object):
         self.kernel_size = params.resnet_kernel_size
         self.num_classes = params.num_classes
         self.num_filters = params.resnet_num_filters
+        self.num_lstm = params.num_lstm
 
     def __call__(self, inputs, is_training, scope=SCOPE):
         with tf.variable_scope(scope):
@@ -152,7 +154,7 @@ class Model(object):
             # First conv layer
             inputs = conv1d_fixed_padding(
                 inputs=inputs, filters=self.num_filters,
-                kernel_size=self.kernel_size, strides=self.conv_stride)
+                kernel_size=self.kernel_size, strides=1)
             inputs = tf.identity(inputs, "initial_conv")
 
             # First pool layer
@@ -170,12 +172,12 @@ class Model(object):
             inputs = batch_norm(inputs)
             inputs = tf.nn.relu(inputs)
 
-            # Average pooling
-            inputs = tf.reduce_mean(input_tensor=inputs, axis=1, keepdims=True)
-            inputs = tf.identity(inputs, 'final_reduce_mean')
+            # Recurrent layer
+            inputs = tf.keras.layers.LSTM(
+                units=self.num_lstm, return_sequences=True)(inputs)
+            inputs = tf.identity(inputs, 'lstm')
 
             # Dense
-            inputs = tf.keras.layers.Flatten()(inputs)
             logits = tf.keras.layers.Dense(units=self.num_classes)(inputs)
             logits = tf.identity(logits, 'final_dense')
 

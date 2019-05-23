@@ -32,6 +32,6 @@ class Model(object):
                     64, return_sequences=True)(inputs)
             inputs = tf.keras.layers.LSTM(
                     64, return_sequences=True)(inputs)
-            inputs = tf.keras.layers.Dense(params.num_classes)(inputs)
+            inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
 
             return inputs

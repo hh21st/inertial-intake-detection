@@ -3,7 +3,8 @@ import itertools
 import numpy as np
 import tensorflow as tf
 import best_checkpoint_exporter
-import resnet
+import resnet_cnn
+import resnet_cnn_lstm
 import small_cnn
 import kyritsis
 from tensorflow.python.platform import gfile
@@ -18,6 +19,9 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_enum(
     name='mode', default="train_and_evaluate", enum_values=["train_and_evaluate", "predict_and_export_csv"],
     help='What mode should tensorflow be started in')
+tf.app.flags.DEFINE_enum(
+    name='model', default='resnet_cnn', enum_values=["resnet_cnn", "resnet_cnn_lstm", "small_cnn", "kyritsis"],
+    help='Select the model')
 tf.app.flags.DEFINE_string(
     name='model_dir', default='run',
     help='Output directory for model and training stats.')
@@ -35,7 +39,7 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_float(
     name='train_epochs', default=60, help='Number of training epochs.')
 tf.app.flags.DEFINE_boolean(
-    name='use_sequence_loss', default=True,
+    name='use_sequence_loss', default=False,
     help='Use sequence-to-sequence loss')
 
 
@@ -65,7 +69,7 @@ def run_experiment(arg=None):
         small_kernel_size=10,
         small_num_filters=[64, 64, 128, 128, 256, 256, 512],
         small_pool_size=2,
-        num_lstm=128,
+        num_lstm=64,
         seq_length=FLAGS.seq_length,
         steps_per_epoch=steps_per_epoch)
 
@@ -123,9 +127,22 @@ def model_fn(features, labels, mode, params):
     features = tf.reshape(features, [params.batch_size, params.seq_length, 12])
 
     # Model
-    logits = resnet.Model(params)(features, params) # need --use_sequence_loss=False
-    # logits = small_cnn.Model(params)(features, params) # need --use_sequence_loss=False
-    # logits = kyritsis.Model(params)(features, params) # need --use_sequence_loss=True --seq_pool=4
+    if FLAGS.model == 'resnet_cnn':
+        assert not FLAGS.use_sequence_loss, "Cannot use sequence loss with this model"
+        model = resnet_cnn.Model(params)
+    elif FLAGS.model == 'resnet_cnn_lstm':
+        assert FLAGS.use_sequence_loss, "Need sequence loss for this model"
+        assert FLAGS.seq_pool == 16, "seq_pool should be 16"
+        model = resnet_cnn_lstm.Model(params)
+    elif FLAGS.model == 'small_cnn':
+        assert not FLAGS.use_sequence_loss, "Cannot use sequence loss with this model"
+        model = small_cnn.Model(params)
+    elif FLAGS.model == 'kyritsis':
+        assert FLAGS.use_sequence_loss, "Need sequence loss for this model"
+        assert FLAGS.seq_pool == 4, "seq_pool should be 4"
+        model = kyritsis.Model(params)
+
+    logits = model(features, params)
 
     # If necessary, slice last sequence step for logits
     final_logits = logits[:,-1,:] if logits.get_shape().ndims == 3 else logits
@@ -303,7 +320,7 @@ def input_fn(is_training, data_dir):
         files = files.shuffle(NUM_SHARDS)
     select_cols = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15]
     record_defaults = [tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.string]
-    shift = 1 if is_training else FLAGS.seq_length
+    shift = FLAGS.seq_shift if is_training else FLAGS.seq_length
     dataset = files.interleave(
         lambda filename:
             tf.data.experimental.CsvDataset(filenames=filename,
