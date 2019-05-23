@@ -16,7 +16,7 @@ def batch_norm(inputs):
         name='batch_normalization')(inputs)
 
 
-def fixed_padding(inputs, kernel_size, data_format):
+def fixed_padding(inputs, kernel_size):
     """Pads the input along the spatial dimensions independently of input size.
     Args:
         inputs: A tensor of size [batch, seq, channels].
@@ -39,8 +39,8 @@ def fixed_padding(inputs, kernel_size, data_format):
 
 def conv1d_fixed_padding(inputs, filters, kernel_size, strides):
     """Strided 1-D convolution with explicit padding."""
-    #if strides > 1:
-    #    inputs = fixed_padding(inputs, filters, kernel_size)
+    if strides > 1:
+        inputs = fixed_padding(inputs, kernel_size)
     return tf.keras.layers.Conv1D(
         filters=filters, kernel_size=kernel_size, strides=strides,
         padding=('SAME' if strides == 1 else 'VALID'), use_bias=False,
@@ -149,22 +149,16 @@ class Model(object):
     def __call__(self, inputs, is_training, scope=SCOPE):
         with tf.variable_scope(scope):
 
-            # Input: (batch_size, 128, 12)
-
             # First conv layer
             inputs = conv1d_fixed_padding(
                 inputs=inputs, filters=self.num_filters,
                 kernel_size=self.kernel_size, strides=self.conv_stride)
             inputs = tf.identity(inputs, "initial_conv")
 
-            # (batch_size, 128, 64)
-
             # First pool layer
             inputs = tf.keras.layers.MaxPool1D(
                 pool_size=self.first_pool_size, strides=self.first_pool_stride,
                 padding='same')(inputs)
-
-            # (batch_size, 64, 64)
 
             for i, num_blocks in enumerate(self.block_sizes):
                 num_filters = self.num_filters * (2**i)
@@ -175,8 +169,6 @@ class Model(object):
 
             inputs = batch_norm(inputs)
             inputs = tf.nn.relu(inputs)
-
-            # (batch_size, 4, 2048)
 
             # Average pooling
             inputs = tf.reduce_mean(input_tensor=inputs, axis=1, keepdims=True)
