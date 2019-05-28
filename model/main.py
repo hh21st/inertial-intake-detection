@@ -76,8 +76,8 @@ def run_experiment(arg=None):
     # Run config
     run_config = tf.estimator.RunConfig(
         model_dir=FLAGS.model_dir,
-        save_summary_steps=10,
-        save_checkpoints_steps=25)
+        save_summary_steps=25,
+        save_checkpoints_steps=100)
 
     # Define the estimator
     estimator = tf.estimator.Estimator(
@@ -108,8 +108,8 @@ def run_experiment(arg=None):
         input_fn=eval_input_fn,
         steps=None,
         exporters=best_exporter,
-        start_delay_secs=30,
-        throttle_secs=20)
+        start_delay_secs=60,
+        throttle_secs=60)
 
     # Start the experiment
     if FLAGS.mode == "train_and_evaluate":
@@ -320,16 +320,13 @@ def input_fn(is_training, data_dir):
         files = files.shuffle(NUM_SHARDS)
     select_cols = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15]
     record_defaults = [tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.string]
-    shift = FLAGS.seq_shift if is_training else FLAGS.seq_length
     dataset = files.interleave(
         lambda filename:
             tf.data.experimental.CsvDataset(filenames=filename,
                 record_defaults=record_defaults, select_cols=select_cols,
                 header=True)
             .map(map_func=_get_input_parser(table))
-            .window(size=FLAGS.seq_length, shift=shift, drop_remainder=True)
-            .flat_map(lambda f_w, l_w: tf.data.Dataset.zip(
-                (f_w.batch(FLAGS.seq_length), l_w.batch(FLAGS.seq_length))))
+            .apply(_get_sequence_batch_fn(is_training))
             .map(map_func=_get_transformation_parser(is_training)),
         cycle_length=1)
     if is_training:
@@ -350,6 +347,17 @@ def _get_input_parser(table):
         labels = table.lookup(l)
         return features, labels
     return input_parser
+
+
+def _get_sequence_batch_fn(is_training):
+    """Return sliding batched dataset or batched dataset."""
+    if is_training:
+        return lambda dataset: dataset.window(
+            size=FLAGS.seq_length, shift=FLAGS.seq_shift, drop_remainder=True).flat_map(
+                lambda f_w, l_w: tf.data.Dataset.zip(
+                    (f_w.batch(FLAGS.seq_length), l_w.batch(FLAGS.seq_length))))
+    else:
+        return lambda dataset: dataset.batch(FLAGS.seq_length, drop_remainder=True)
 
 
 def _get_transformation_parser(is_training):
