@@ -27,6 +27,9 @@ tf.app.flags.DEFINE_string(
     help='Output directory for model and training stats.')
 tf.app.flags.DEFINE_integer(
     name='num_sequences', default=1185852, help='Number of training example steps.')
+tf.app.flags.DEFINE_boolean(
+    name='preprocess_dominant_hand', default=True,
+    help='Reorder features based on dominant hand.')
 tf.app.flags.DEFINE_integer(
     name='seq_length', default=128,
     help='Number of sequence elements.')
@@ -338,14 +341,15 @@ def input_fn(is_training, data_dir):
 
 
 def _get_input_parser(table):
-
     """Return the input parser."""
     def input_parser(f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, dom, l):
         # Stack features
-        features = tf.cond(tf.equal(dom , b'right')
-                           , lambda: tf.stack([f7, f8, f9, f10, f11, f12, f1, f2, f3, f4, f5, f6], 0)
-                           , lambda: tf.stack([f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12], 0)
-                           )
+        if FLAGS.preprocess_dominant_hand:
+            features = tf.cond(tf.equal(dom , b'right'),
+                lambda: tf.stack([f7, f8, f9, f10, f11, f12, f1, f2, f3, f4, f5, f6], 0),
+                lambda: tf.stack([f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12], 0))
+        else:
+            features = tf.stack([f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12], 0)
         features = tf.cast(features, tf.float32)
         # Map labels
         labels = table.lookup(l)
