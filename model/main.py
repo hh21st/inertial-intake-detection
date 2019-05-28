@@ -318,8 +318,9 @@ def input_fn(is_training, data_dir):
     # Shuffle files if needed
     if is_training:
         files = files.shuffle(NUM_SHARDS)
-    select_cols = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15]
-    record_defaults = [tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.string]
+    select_cols = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    record_defaults = [tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.string, tf.string]
+    shift = FLAGS.seq_shift if is_training else FLAGS.seq_length
     dataset = files.interleave(
         lambda filename:
             tf.data.experimental.CsvDataset(filenames=filename,
@@ -339,9 +340,12 @@ def input_fn(is_training, data_dir):
 def _get_input_parser(table):
 
     """Return the input parser."""
-    def input_parser(f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, l):
+    def input_parser(f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, dom, l):
         # Stack features
-        features = tf.stack([f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12], 0)
+        features = tf.cond(tf.equal(dom , b'right')
+                           , lambda: tf.stack([f7, f8, f9, f10, f11, f12, f1, f2, f3, f4, f5, f6], 0)
+                           , lambda: tf.stack([f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12], 0)
+                           )
         features = tf.cast(features, tf.float32)
         # Map labels
         labels = table.lookup(l)
