@@ -7,7 +7,6 @@ SCOPE = "resnet_cnn"
 BATCH_NORM_DECAY = 0.997
 BATCH_NORM_EPSILON = 1e-5
 
-# ~ 78% eval
 
 def batch_norm(inputs):
     """Performs a batch normalization using a standard set of parameters."""
