@@ -145,7 +145,7 @@ def model_fn(features, labels, mode, params):
         assert FLAGS.seq_pool == 4, "seq_pool should be 4"
         model = kyritsis.Model(params)
 
-    logits = model(features, params)
+    logits = model(features, is_training)
 
     # If necessary, slice last sequence step for logits
     final_logits = logits[:,-1,:] if logits.get_shape().ndims == 3 else logits
