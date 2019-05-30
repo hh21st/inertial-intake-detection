@@ -26,7 +26,7 @@ tf.app.flags.DEFINE_string(
     name='model_dir', default='run',
     help='Output directory for model and training stats.')
 tf.app.flags.DEFINE_integer(
-    name='num_sequences', default=1185852, help='Number of training example steps.')
+    name='num_sequences', default=3175419, help='Number of training example steps.')
 tf.app.flags.DEFINE_boolean(
     name='preprocess_dominant_hand', default=True,
     help='Reorder features based on dominant hand.')
@@ -323,7 +323,6 @@ def input_fn(is_training, data_dir):
         files = files.shuffle(NUM_SHARDS)
     select_cols = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
     record_defaults = [tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.string, tf.string]
-    shift = FLAGS.seq_shift if is_training else FLAGS.seq_length
     dataset = files.interleave(
         lambda filename:
             tf.data.experimental.CsvDataset(filenames=filename,
