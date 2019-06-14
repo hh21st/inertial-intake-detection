@@ -9,7 +9,7 @@ import small_cnn
 import kyritsis
 from tensorflow.python.platform import gfile
 
-
+tf.logging.set_verbosity(tf.logging.INFO)
 NUM_SHARDS = 10
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_integer(
@@ -359,10 +359,13 @@ def _get_input_parser(table):
 def _get_sequence_batch_fn(is_training):
     """Return sliding batched dataset or batched dataset."""
     if is_training:
-        return lambda dataset: dataset.window(
-            size=FLAGS.seq_length, shift=FLAGS.seq_shift, drop_remainder=True).flat_map(
-                lambda f_w, l_w: tf.data.Dataset.zip(
-                    (f_w.batch(FLAGS.seq_length), l_w.batch(FLAGS.seq_length))))
+        if tf.__version__ < "1.13.1":
+            return tf.contrib.data.sliding_window_batch(window_size=FLAGS.seq_length, window_shift=FLAGS.seq_shift)
+        else:
+            return lambda dataset: dataset.window(
+                size=FLAGS.seq_length, shift=FLAGS.seq_shift, drop_remainder=True).flat_map(
+                    lambda f_w, l_w: tf.data.Dataset.zip(
+                        (f_w.batch(FLAGS.seq_length), l_w.batch(FLAGS.seq_length))))
     else:
         return lambda dataset: dataset.batch(FLAGS.seq_length, drop_remainder=True)
 
@@ -411,9 +414,14 @@ def predict_and_export_csv(estimator, eval_input_fn, eval_dir, seq_skip):
     def input_parser(seqNo, label):
         label = table.lookup(label)
         return seqNo, label
-    dataset = tf.data.experimental.CsvDataset(
-        filenames=tf.data.Dataset.list_files(filenames),
-            record_defaults=record_defaults, select_cols=select_cols, header=True)
+    if tf.__version__ < "1.13.1":
+        dataset = tf.contrib.data.CsvDataset(
+            filenames=tf.data.Dataset.list_files(filenames),
+                record_defaults=record_defaults, select_cols=select_cols, header=True)
+    else:
+        dataset = tf.data.experimental.CsvDataset(
+            filenames=tf.data.Dataset.list_files(filenames),
+                record_defaults=record_defaults, select_cols=select_cols, header=True)
     elem = dataset.map(input_parser).make_one_shot_iterator().get_next()
     labels = []; seq_no = []; sess = tf.Session()
     for i in range(0, num + seq_skip):
