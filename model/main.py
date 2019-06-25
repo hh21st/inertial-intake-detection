@@ -26,7 +26,7 @@ tf.app.flags.DEFINE_string(
     name='model_dir', default='run',
     help='Output directory for model and training stats.')
 tf.app.flags.DEFINE_integer(
-    name='num_sequences', default=396960, help='Number of training example steps.')
+    name='num_sequences', default=3175419, help='Number of training example steps.')
 tf.app.flags.DEFINE_boolean(
     name='preprocess_dominant_hand', default=True,
     help='Reorder features based on dominant hand.')
@@ -49,8 +49,8 @@ tf.app.flags.DEFINE_boolean(
 def run_experiment(arg=None):
     """Run the experiment."""
 
-    steps_per_epoch = int(FLAGS.num_sequences / FLAGS.batch_size \
-                        * FLAGS.seq_shift / FLAGS.seq_length)
+    # Approximate steps per epoch
+    steps_per_epoch = int(FLAGS.num_sequences / FLAGS.batch_size / FLAGS.seq_length)
     max_steps = steps_per_epoch * FLAGS.train_epochs
 
     # Model parameters
