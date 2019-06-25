@@ -36,7 +36,7 @@ tf.app.flags.DEFINE_integer(
 tf.app.flags.DEFINE_integer(
     name='seq_pool', default=1, help='Factor of sequence pooling in the model.')
 tf.app.flags.DEFINE_integer(
-    name='seq_shift', default=8, help='Shift taken in sequence generation.')
+    name='seq_shift', default=1, help='Shift taken in sequence generation.')
 tf.app.flags.DEFINE_string(
     name='train_dir', default='../data/train', help='Directory for training data.')
 tf.app.flags.DEFINE_float(
@@ -359,15 +359,16 @@ def _get_input_parser(table):
 def _get_sequence_batch_fn(is_training):
     """Return sliding batched dataset or batched dataset."""
     if is_training:
-        if tf.__version__ < "1.13.1":
-            return tf.contrib.data.sliding_window_batch(window_size=FLAGS.seq_length, window_shift=FLAGS.seq_shift)
-        else:
-            return lambda dataset: dataset.window(
-                size=FLAGS.seq_length, shift=FLAGS.seq_shift, drop_remainder=True).flat_map(
-                    lambda f_w, l_w: tf.data.Dataset.zip(
-                        (f_w.batch(FLAGS.seq_length), l_w.batch(FLAGS.seq_length))))
+        seq_shift = FLAGS.seq_shift
     else:
-        return lambda dataset: dataset.batch(FLAGS.seq_length, drop_remainder=True)
+        seq_shift = 1
+    if tf.__version__ < "1.13.1":
+        return tf.contrib.data.sliding_window_batch(window_size=FLAGS.seq_length, window_shift=seq_shift)
+    else:
+        return lambda dataset: dataset.window(
+            size=FLAGS.seq_length, shift=seq_shift, drop_remainder=True).flat_map(
+                lambda f_w, l_w: tf.data.Dataset.zip(
+                    (f_w.batch(FLAGS.seq_length), l_w.batch(FLAGS.seq_length))))
 
 
 def _get_transformation_parser(is_training):
