@@ -44,7 +44,8 @@ tf.app.flags.DEFINE_float(
 tf.app.flags.DEFINE_boolean(
     name='use_sequence_loss', default=False,
     help='Use sequence-to-sequence loss')
-
+tf.app.flags.DEFINE_float(
+    name='decay_rate', default=0.9, help='Decay rate of the learning rate.')
 
 def run_experiment(arg=None):
     """Run the experiment."""
@@ -57,7 +58,7 @@ def run_experiment(arg=None):
     params = tf.contrib.training.HParams(
         base_learning_rate=3e-4,
         batch_size=FLAGS.batch_size,
-        decay_rate=0.9,
+        decay_rate=FLAGS.decay_rate,
         dropout=0.5,
         gradient_clipping_norm=10.0,
         l2_lambda=1e-4,
