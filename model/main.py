@@ -28,8 +28,8 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_integer(
     name='num_sequences', default=3175419, help='Number of training example steps.')
 tf.app.flags.DEFINE_boolean(
-    name='preprocess_dominant_hand', default=True,
-    help='Reorder features based on dominant hand.')
+    name='include_dominant_hand_flag', default=True,
+    help='Include the flag that determines the dominant hand.')
 tf.app.flags.DEFINE_integer(
     name='seq_length', default=128,
     help='Number of sequence elements.')
@@ -128,7 +128,10 @@ def model_fn(features, labels, mode, params):
     is_predicting = mode == tf.estimator.ModeKeys.PREDICT
 
     # Set features to correct shape
-    features = tf.reshape(features, [params.batch_size, params.seq_length, 12])
+    if FLAGS.include_dominant_hand_flag:
+        features = tf.reshape(features, [params.batch_size, params.seq_length, 13])
+    else:
+        features = tf.reshape(features, [params.batch_size, params.seq_length, 12])
 
     # Model
     if FLAGS.model == 'resnet_cnn':
@@ -319,6 +322,13 @@ def input_fn(is_training, data_dir):
     # Initialize table
     with tf.Session() as sess:
         sess.run(table.init)
+    # Lookup table for dominant hand flag
+    mapping_strings_dom_hand = tf.constant(["left", "right"])
+    table_dom_hand = tf.contrib.lookup.index_table_from_tensor(
+        mapping=mapping_strings_dom_hand)
+    # Initialize dominant hand table
+    with tf.Session() as sess:
+        sess.run(table_dom_hand.init)
     # Shuffle files if needed
     if is_training:
         files = files.shuffle(NUM_SHARDS)
@@ -329,7 +339,7 @@ def input_fn(is_training, data_dir):
             tf.contrib.data.CsvDataset(filenames=filename,
                 record_defaults=record_defaults, select_cols=select_cols,
                 header=True)
-            .map(map_func=_get_input_parser(table))
+            .map(map_func=_get_input_parser(table, table_dom_hand))
             .apply(_get_sequence_batch_fn(is_training))
             .map(map_func=_get_transformation_parser(is_training)),
         cycle_length=1)
@@ -340,14 +350,13 @@ def input_fn(is_training, data_dir):
     return dataset
 
 
-def _get_input_parser(table):
+def _get_input_parser(table, table_dom_hand):
     """Return the input parser."""
     def input_parser(f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, dom, l):
         # Stack features
-        if FLAGS.preprocess_dominant_hand:
-            features = tf.cond(tf.equal(dom , b'right'),
-                lambda: tf.stack([f7, f8, f9, f10, f11, f12, f1, f2, f3, f4, f5, f6], 0),
-                lambda: tf.stack([f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12], 0))
+        if FLAGS.include_dominant_hand_flag:
+            f_dom = tf.cast(table_dom_hand.lookup(dom), tf.int32)
+            features = tf.stack([f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f_dom], 0)
         else:
             features = tf.stack([f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12], 0)
         features = tf.cast(features, tf.float32)
