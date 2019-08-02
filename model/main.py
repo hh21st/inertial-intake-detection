@@ -7,6 +7,7 @@ import resnet_cnn
 import resnet_cnn_lstm
 import small_cnn
 import kyritsis
+import cnn_lstm
 from tensorflow.python.platform import gfile
 
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -20,7 +21,7 @@ tf.app.flags.DEFINE_enum(
     name='mode', default="train_and_evaluate", enum_values=["train_and_evaluate", "predict_and_export_csv"],
     help='What mode should tensorflow be started in')
 tf.app.flags.DEFINE_enum(
-    name='model', default='resnet_cnn', enum_values=["resnet_cnn", "resnet_cnn_lstm", "small_cnn", "kyritsis"],
+    name='model', default='resnet_cnn', enum_values=["resnet_cnn", "resnet_cnn_lstm", "small_cnn", "kyritsis", "cnn_lstm"],
     help='Select the model')
 tf.app.flags.DEFINE_string(
     name='model_dir', default='run',
@@ -148,8 +149,13 @@ def model_fn(features, labels, mode, params):
         assert FLAGS.use_sequence_loss, "Need sequence loss for this model"
         assert FLAGS.seq_pool == 4, "seq_pool should be 4"
         model = kyritsis.Model(params)
+    elif FLAGS.model == 'cnn_lstm':
+        FLAGS.use_sequence_loss = True
+        model = cnn_lstm.Model(params)
+        FLAGS.seq_pool, logits = model(features, is_training)
 
-    logits = model(features, is_training)
+    if FLAGS.model != 'cnn_lstm':
+        logits = model(features, is_training)
 
     # If necessary, slice last sequence step for logits
     final_logits = logits[:,-1,:] if logits.get_shape().ndims == 3 else logits
