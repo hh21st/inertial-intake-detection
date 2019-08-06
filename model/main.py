@@ -32,7 +32,7 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_integer(
     name='num_sequences', default=3175419, help='Number of training example steps.')
 tf.app.flags.DEFINE_boolean(
-    name='include_dominant_hand_flag', default=True,
+    name='include_dominant_hand', default=True,
     help='Include the flag that determines the dominant hand.')
 tf.app.flags.DEFINE_integer(
     name='seq_length', default=128,
@@ -133,7 +133,7 @@ def model_fn(features, labels, mode, params):
     is_predicting = mode == tf.estimator.ModeKeys.PREDICT
 
     # Set features to correct shape
-    if FLAGS.include_dominant_hand_flag:
+    if FLAGS.include_dominant_hand:
         features = tf.reshape(features, [params.batch_size, params.seq_length, 13])
     else:
         features = tf.reshape(features, [params.batch_size, params.seq_length, 12])
@@ -364,7 +364,7 @@ def _get_input_parser(table, table_dom_hand):
     """Return the input parser."""
     def input_parser(f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, dom, l):
         # Stack features
-        if FLAGS.include_dominant_hand_flag:
+        if FLAGS.include_dominant_hand:
             f_dom = tf.cast(table_dom_hand.lookup(dom), tf.int32)
             features = tf.stack([f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f_dom], 0)
         else:
