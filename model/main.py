@@ -50,6 +50,12 @@ tf.app.flags.DEFINE_boolean(
     help='Use sequence-to-sequence loss')
 tf.app.flags.DEFINE_float(
     name='decay_rate', default=0.9, help='Decay rate of the learning rate.')
+tf.app.flags.DEFINE_enum(
+    name='hand', default='both', enum_values=['both', 'left', 'right'],
+    help='specified data from which hands are included in the input')
+tf.app.flags.DEFINE_enum(
+    name='modality', default='both', enum_values=['both', 'accel', 'gyro'],
+    help='specified data from what modalities are included in the input')
 
 def run_experiment(arg=None):
     """Run the experiment."""
@@ -132,11 +138,20 @@ def model_fn(features, labels, mode, params):
     is_training = mode == tf.estimator.ModeKeys.TRAIN
     is_predicting = mode == tf.estimator.ModeKeys.PREDICT
 
-    # Set features to correct shape
+    if FLAGS.hand != 'both' and FLAGS.modality != 'both':
+        features_num = 3 
+    if FLAGS.hand == 'both' and FLAGS.modality != 'both':
+        features_num = 6
+    elif FLAGS.hand != 'both' and FLAGS.modality == 'both':
+        features_num = 6
+    elif FLAGS.hand == 'both' and FLAGS.modality == 'both':
+        features_num = 12
+
     if FLAGS.include_dominant_hand_flag:
-        features = tf.reshape(features, [params.batch_size, params.seq_length, 13])
-    else:
-        features = tf.reshape(features, [params.batch_size, params.seq_length, 12])
+        features_num += 1
+
+    # Set features to correct shape
+    features = tf.reshape(features, [params.batch_size, params.seq_length, features_num])
 
     # Model
     if FLAGS.model == 'resnet_cnn':
@@ -363,12 +378,56 @@ def input_fn(is_training, data_dir):
 def _get_input_parser(table, table_dom_hand):
     """Return the input parser."""
     def input_parser(f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, dom, l):
-        # Stack features
+        
         if FLAGS.include_dominant_hand_flag:
             f_dom = tf.cast(table_dom_hand.lookup(dom), tf.int32)
-            features = tf.stack([f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f_dom], 0)
-        else:
-            features = tf.stack([f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12], 0)
+        
+        # Stack features
+        if FLAGS.hand == 'left' and FLAGS.modality == 'accel' :
+            if FLAGS.include_dominant_hand_flag:
+                features = tf.stack([f1, f2, f3, f_dom], 0)
+            else:
+                features = tf.stack([f1, f2, f3], 0)
+        elif FLAGS.hand == 'left' and FLAGS.modality == 'gyro' :
+            if FLAGS.include_dominant_hand_flag:
+                features = tf.stack([f4, f5, f6, f_dom], 0)
+            else:
+                features = tf.stack([f4, f5, f6], 0)
+        elif FLAGS.hand == 'left' and FLAGS.modality == 'both' :
+            if FLAGS.include_dominant_hand_flag:
+                features = tf.stack([f1, f2, f3, f4, f5, f6, f_dom], 0)
+            else:
+                features = tf.stack([f1, f2, f3, f4, f5, f6], 0)
+        elif FLAGS.hand == 'right' and FLAGS.modality == 'accel' :
+            if FLAGS.include_dominant_hand_flag:
+                features = tf.stack([f7, f8, f9, f_dom], 0)
+            else:
+                features = tf.stack([f7, f8, f9], 0)
+        elif FLAGS.hand == 'right' and FLAGS.modality == 'gyro' :
+            if FLAGS.include_dominant_hand_flag:
+                features = tf.stack([f10, f11, f12, f_dom], 0)
+            else:
+                features = tf.stack([f10, f11, f12], 0)
+        elif FLAGS.hand == 'right' and FLAGS.modality == 'both' :
+            if FLAGS.include_dominant_hand_flag:
+                features = tf.stack([f7, f8, f9, f10, f11, f12, f_dom], 0)
+            else:
+                features = tf.stack([f7, f8, f9, f10, f11, f12], 0)
+        elif FLAGS.hand == 'both' and FLAGS.modality == 'accel' :
+            if FLAGS.include_dominant_hand_flag:
+                features = tf.stack([f1, f2, f3, f7, f8, f9, f_dom], 0)
+            else:
+                features = tf.stack([f1, f2, f3, f7, f8, f9], 0)
+        elif FLAGS.hand == 'both' and FLAGS.modality == 'gyro' :
+            if FLAGS.include_dominant_hand_flag:
+                features = tf.stack([f4, f5, f6, f10, f11, f12, f_dom], 0)
+            else:
+                features = tf.stack([f4, f5, f6, f10, f11, f12, ], 0)
+        else: # FLAGS.hand == 'both' and FLAGS.modality == 'both'
+            if FLAGS.include_dominant_hand_flag:
+                features = tf.stack([f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f_dom], 0)
+            else:
+                features = tf.stack([f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12], 0)
         features = tf.cast(features, tf.float32)
         # Map labels
         labels = table.lookup(l)
