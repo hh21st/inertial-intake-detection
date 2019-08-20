@@ -9,7 +9,7 @@ import os
 
 CSV_SUFFIX = '*.csv'
 
-def import_probs_and_labels(filepath):
+def import_probs_and_labels(filepath, col_label, col_prob):
     """Import probabilities and labels from csv"""
     filenames = glob.glob(os.path.join(filepath, CSV_SUFFIX))
     assert filenames, "No files found for evaluation"
@@ -18,8 +18,8 @@ def import_probs_and_labels(filepath):
     for filename in filenames:
         with open(filename) as dest_f:
             for row in csv.reader(dest_f, delimiter=','):
-                labels.append(int(row[2]))
-                probs.append(float(row[3]))
+                labels.append(int(row[col_label]))
+                probs.append(float(row[col_prob]))
     labels = np.array(labels)
     probs = np.array(probs)
 
@@ -95,7 +95,7 @@ def eval_stage_2(dets, labels):
 
 def main(args=None):
     # Import the probs and labels from csv
-    probs, labels = import_probs_and_labels(args.eval_dir)
+    probs, labels = import_probs_and_labels(args.eval_dir, args.col_label, args.col_prob)
     # Calculate UAR for Stage I
     uar = eval_stage_1(probs, labels)
     print('UAR: {}'.format(uar))
@@ -150,5 +150,7 @@ if __name__ == '__main__':
     parser.add_argument('--min_threshold', type=float, default=0.5, nargs='?', help='Minimum detection threshold probability')
     parser.add_argument('--max_threshold', type=float, default=1, nargs='?', help='Maximum detection threshold probability')
     parser.add_argument('--inc_threshold', type=float, default=0.001, nargs='?', help='Increment for detection threshold search')
+    parser.add_argument('--col_label', type=int, default=2, nargs='?', help='Col number of label in csv')
+    parser.add_argument('--col_prob', type=int, default=3, nargs='?', help='Col number of probability in csv')
     args = parser.parse_args()
     main(args)
