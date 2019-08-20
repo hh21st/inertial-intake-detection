@@ -139,7 +139,7 @@ def model_fn(features, labels, mode, params):
     is_predicting = mode == tf.estimator.ModeKeys.PREDICT
 
     if FLAGS.hand != 'both' and FLAGS.modality != 'both':
-        features_num = 3 
+        features_num = 3
     if FLAGS.hand == 'both' and FLAGS.modality != 'both':
         features_num = 6
     elif FLAGS.hand != 'both' and FLAGS.modality == 'both':
@@ -378,10 +378,10 @@ def input_fn(is_training, data_dir):
 def _get_input_parser(table, table_dom_hand):
     """Return the input parser."""
     def input_parser(f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, dom, l):
-        
+
         if FLAGS.include_dominant_hand_flag:
             f_dom = tf.cast(table_dom_hand.lookup(dom), tf.int32)
-        
+
         # Stack features
         if FLAGS.hand == 'left' and FLAGS.modality == 'accel' :
             if FLAGS.include_dominant_hand_flag:
@@ -484,26 +484,25 @@ def predict_and_export_csv(estimator, eval_input_fn, eval_dir, seq_skip):
     pred_probs_1 = list(map(lambda item: item["probabilities"][1], pred_list))
     num = len(pred_probs_1)
     # Get labels and ids
-    filenames = gfile.Glob(os.path.join(eval_dir, ".csv"))
+    filenames = gfile.Glob(os.path.join(eval_dir, "*.csv"))
     select_cols = [0, 15]; record_defaults = [tf.int32, tf.string]
     mapping_strings = tf.constant(["idle", "Intake"])
     table = tf.contrib.lookup.index_table_from_tensor(
         mapping=mapping_strings)
-    with tf.Session() as sess:
-        sess.run(table.init)
     def input_parser(seqNo, label):
         label = table.lookup(label)
         return seqNo, label
     if tf.__version__ < "1.13.1":
-        dataset = tf.contrib.data.CsvDataset(
-            filenames=tf.data.Dataset.list_files(filenames),
-                record_defaults=record_defaults, select_cols=select_cols, header=True)
+        dataset = tf.contrib.data.CsvDataset(filenames=filenames,
+            record_defaults=record_defaults, select_cols=select_cols, header=True)
     else:
-        dataset = tf.data.experimental.CsvDataset(
-            filenames=tf.data.Dataset.list_files(filenames),
-                record_defaults=record_defaults, select_cols=select_cols, header=True)
-    elem = dataset.map(input_parser).make_one_shot_iterator().get_next()
+        dataset = tf.data.experimental.CsvDataset(filenames=filenames,
+            record_defaults=record_defaults, select_cols=select_cols, header=True)
+    iterator = dataset.map(input_parser).make_initializable_iterator()
+    elem = iterator.get_next()
     labels = []; seq_no = []; sess = tf.Session()
+    sess.run(iterator.initializer)
+    sess.run(table.init)
     for i in range(0, num + seq_skip):
         val = sess.run(elem)
         seq_no.append(val[0])
