@@ -32,6 +32,8 @@ def max_search(probs, threshold, mindist):
     probabilities[probabilities <= threshold] = 0
     # Potential detections
     idx_p = np.where(probabilities > 0)[0]
+    if (idx_p.size == 0):
+        return np.zeros(probs.shape)
     # Identify start and end of detections
     p_d = np.diff(idx_p) - 1
     p = np.where(p_d > 0)[0]
@@ -88,9 +90,14 @@ def eval_stage_2(dets, labels):
     fn = np.sum([0 if np.sum(split) > 0 else 1 for split in splits_t])
     fp_1 = np.sum([np.sum(split)-1 if np.sum(split)>1 else 0 for split in splits_t])
     fp_2 = np.sum(splits_f)
-    prec = tp / (tp + fp_1 + fp_2)
-    rec = tp / (tp + fn)
-    f1 = 2 * prec * rec / (prec + rec)
+    if tp > 0:
+        prec = tp / (tp + fp_1 + fp_2)
+        rec = tp / (tp + fn)
+        f1 = 2 * prec * rec / (prec + rec)
+    else:
+        prec = 0
+        rec = 0
+        f1 = 0
     return tp, fn, fp_1, fp_2, prec, rec, f1
 
 def main(args=None):
