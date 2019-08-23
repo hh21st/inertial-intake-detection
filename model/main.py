@@ -9,6 +9,7 @@ import small_cnn
 import kyritsis
 import cnn_lstm
 import cnn_gru
+import cnn_blstm
 from tensorflow.python.platform import gfile
 
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -22,14 +23,11 @@ tf.app.flags.DEFINE_enum(
     name='mode', default='train_and_evaluate', enum_values=['train_and_evaluate', 'predict_and_export_csv'],
     help='What mode should tensorflow be started in')
 tf.app.flags.DEFINE_enum(
-    name='model', default='cnn_gru', enum_values=['resnet_cnn', 'resnet_cnn_lstm', 'small_cnn', 'kyritsis', 'cnn_lstm', 'cnn_gru'],
+    name='model', default='cnn_blstm', enum_values=['resnet_cnn', 'resnet_cnn_lstm', 'small_cnn', 'kyritsis', 'cnn_lstm', 'cnn_gru', 'cnn_blstm'],
     help='Select the model')
 tf.app.flags.DEFINE_string(
-    name='cl_mode', default='cl3',
-    help='Select the mode of the proposed cnn_lstm model')
-tf.app.flags.DEFINE_string(
-    name='cg_mode', default='cg3',
-    help='Select the mode of the proposed cnn_gru model')
+    name='sub_mode', default='cl3',
+    help='Select the mode of the proposed cnn_lstm, cnn_gru or cnn_blstm model')
 tf.app.flags.DEFINE_string(
     name='model_dir', default='run',
     help='Output directory for model and training stats.')
@@ -86,8 +84,7 @@ def run_experiment(arg=None):
         resnet_num_filters=64,
         small_kernel_size=10,
         small_num_filters=[64, 64, 128, 128, 256, 256, 512],
-        cl_mode=FLAGS.cl_mode,
-        cg_mode=FLAGS.cg_mode,
+        sub_mode=FLAGS.sub_mode,
         small_pool_size=2,
         num_lstm=64,
         seq_length=FLAGS.seq_length,
@@ -181,8 +178,12 @@ def model_fn(features, labels, mode, params):
         FLAGS.use_sequence_loss = True
         model = cnn_gru.Model(params)
         FLAGS.seq_pool, logits = model(features, is_training)
+    elif FLAGS.model == 'cnn_blstm':
+        FLAGS.use_sequence_loss = True
+        model = cnn_blstm.Model(params)
+        FLAGS.seq_pool, logits = model(features, is_training)
 
-    if FLAGS.model != 'cnn_lstm' and FLAGS.model != 'cnn_gru':
+    if FLAGS.model != 'cnn_lstm' and FLAGS.model != 'cnn_gru' and FLAGS.model != 'cnn_blstm':
         logits = model(features, is_training)
 
     # If necessary, slice last sequence step for logits

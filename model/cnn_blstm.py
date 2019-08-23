@@ -1,8 +1,8 @@
-"""CNN GRU for inertial data"""
+"""CNN Bidirectional LSTM for inertial data"""
 
 import tensorflow as tf
 
-def cg1(self, inputs, is_training):
+def cl1(self, inputs, is_training):
     seq_pool=1
     inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
     inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
@@ -28,14 +28,13 @@ def cg1(self, inputs, is_training):
 
     inputs = tf.keras.layers.Dense(8)(inputs)
 
-    inputs = tf.keras.layers.GRU(64, return_sequences=True)(inputs)
-    inputs = tf.keras.layers.GRU(64, return_sequences=True)(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64, return_sequences=True))(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64, return_sequences=True))(inputs)
 
     inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
     return seq_pool, inputs
 
-
-def cg2(self, inputs, is_training):
+def cl2(self, inputs, is_training):
     seq_pool=1
     inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
     inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
@@ -52,14 +51,14 @@ def cg2(self, inputs, is_training):
 
     inputs = tf.keras.layers.Dense(8)(inputs)
 
-    inputs = tf.keras.layers.GRU(64, return_sequences=True)(inputs)
-    inputs = tf.keras.layers.GRU(64, return_sequences=True)(inputs)
-    inputs = tf.keras.layers.GRU(64, return_sequences=True)(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64, return_sequences=True))(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64, return_sequences=True))(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64, return_sequences=True))(inputs)
 
     inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
     return seq_pool, inputs
 
-def cg3(self, inputs, is_training):
+def cl3(self, inputs, is_training):
     seq_pool=1
     inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
     inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
@@ -76,13 +75,92 @@ def cg3(self, inputs, is_training):
 
     inputs = tf.keras.layers.Dense(8)(inputs)
 
-    inputs = tf.keras.layers.GRU(128, return_sequences=True)(inputs)
-    inputs = tf.keras.layers.GRU(64, return_sequences=True)(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(128, return_sequences=True))(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64, return_sequences=True))(inputs)
 
     inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
     return seq_pool, inputs
 
-def cg3_1(self, inputs, is_training):
+def cl3_0(self, inputs, is_training):
+    seq_pool=1
+    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=2 => seq_length= seq_length/seq_pool = 128 /2 = 64
+    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=4 => seq_length= 128 /4 = 32
+    inputs = tf.keras.layers.Conv1D(filters=248, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=248, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=8 => seq_length= 128 /8 = 16
+    inputs = tf.keras.layers.Conv1D(filters=256, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=256, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=16 => seq_length= 128 /16 = 8
+
+    inputs = tf.keras.layers.Dense(8)(inputs)
+
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(256, return_sequences=True))(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(128, return_sequences=True))(inputs)
+
+    inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
+    return seq_pool, inputs
+
+def cl3_0_1(self, inputs, is_training):
+    seq_pool=1
+    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=2 => seq_length= seq_length/seq_pool = 128 /2 = 64
+    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=4 => seq_length= 128 /4 = 32
+    inputs = tf.keras.layers.Conv1D(filters=248, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=248, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=8 => seq_length= 128 /8 = 16
+    inputs = tf.keras.layers.Conv1D(filters=256, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=256, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=16 => seq_length= 128 /16 = 8
+
+    inputs = tf.keras.layers.Dense(8)(inputs)
+
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(1024, return_sequences=True))(inputs)
+
+    inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
+    return seq_pool, inputs
+
+def cl3_0_2(self, inputs, is_training):
+    seq_pool=1
+    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=2 => seq_length= seq_length/seq_pool = 128 /2 = 64
+    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=4 => seq_length= 128 /4 = 32
+    inputs = tf.keras.layers.Conv1D(filters=248, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=248, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=8 => seq_length= 128 /8 = 16
+    inputs = tf.keras.layers.Conv1D(filters=256, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=256, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=16 => seq_length= 128 /16 = 8
+
+    inputs = tf.keras.layers.Dense(16)(inputs)
+
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(1024, return_sequences=True))(inputs)
+
+    inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
+    return seq_pool, inputs
+
+def cl3_1(self, inputs, is_training):
     seq_pool=1
     inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
     inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
@@ -99,13 +177,37 @@ def cg3_1(self, inputs, is_training):
 
     inputs = tf.keras.layers.Dense(4)(inputs)
 
-    inputs = tf.keras.layers.GRU(128, return_sequences=True)(inputs)
-    inputs = tf.keras.layers.GRU(64, return_sequences=True)(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(128, return_sequences=True))(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64, return_sequences=True))(inputs)
 
     inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
     return seq_pool, inputs
 
-def cg3_1_1(self, inputs, is_training):
+def cl3_1_0(self, inputs, is_training):
+    seq_pool=1
+    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=2 => seq_length= seq_length/seq_pool = 128 /2 = 64
+    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=4 => seq_length= 128 /4 = 32
+    inputs = tf.keras.layers.Conv1D(filters=248, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=256, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=8 => seq_length= 128 /8 = 16
+    inputs = tf.keras.layers.Conv1D(filters=512, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=16 => seq_length= 128 /16 = 8
+
+    inputs = tf.keras.layers.Dense(4)(inputs)
+
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(128, return_sequences=True))(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(128, return_sequences=True))(inputs)
+
+    inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
+    return seq_pool, inputs
+
+def cl3_1_1(self, inputs, is_training):
     seq_pool=1
     inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
     inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
@@ -125,13 +227,38 @@ def cg3_1_1(self, inputs, is_training):
 
     inputs = tf.keras.layers.Dense(4)(inputs)
 
-    inputs = tf.keras.layers.GRU(128, return_sequences=True)(inputs)
-    inputs = tf.keras.layers.GRU(64, return_sequences=True)(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(128, return_sequences=True))(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64, return_sequences=True))(inputs)
 
     inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
     return seq_pool, inputs
 
-def cg3_2(self, inputs, is_training):
+def cl3_1_1_0(self, inputs, is_training):
+    seq_pool=1
+    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=2 => seq_length= seq_length/seq_pool = 128 /2 = 64
+    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=4 => seq_length= 128 /4 = 32
+    inputs = tf.keras.layers.Conv1D(filters=248, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=8 => seq_length= 128 /8 = 16
+    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=16 => seq_length= 128 /16 = 8
+    inputs = tf.keras.layers.Conv1D(filters=256, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
+    seq_pool=seq_pool*2 # seq_pool=32 => seq_length= 128 /32 = 4
+
+    inputs = tf.keras.layers.Dense(4)(inputs)
+
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(512, return_sequences=True))(inputs)
+
+    inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
+    return seq_pool, inputs
+
+def cl3_2(self, inputs, is_training):
     seq_pool=1
     inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
     inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
@@ -148,13 +275,13 @@ def cg3_2(self, inputs, is_training):
 
     inputs = tf.keras.layers.Dense(2)(inputs)
 
-    inputs = tf.keras.layers.GRU(128, return_sequences=True)(inputs)
-    inputs = tf.keras.layers.GRU(64, return_sequences=True)(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(128, return_sequences=True))(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64, return_sequences=True))(inputs)
 
     inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
     return seq_pool, inputs
 
-def cg3_2_1(self, inputs, is_training):
+def cl3_2_1(self, inputs, is_training):
     seq_pool=1
     inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
     inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
@@ -177,13 +304,13 @@ def cg3_2_1(self, inputs, is_training):
 
     inputs = tf.keras.layers.Dense(2)(inputs)
 
-    inputs = tf.keras.layers.GRU(128, return_sequences=True)(inputs)
-    inputs = tf.keras.layers.GRU(64, return_sequences=True)(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(128, return_sequences=True))(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64, return_sequences=True))(inputs)
 
     inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
     return seq_pool, inputs
 
-def cg4(self, inputs, is_training):
+def cl4(self, inputs, is_training):
     seq_pool=1
     inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
     inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
@@ -200,13 +327,13 @@ def cg4(self, inputs, is_training):
 
     inputs = tf.keras.layers.Dense(16)(inputs)
 
-    inputs = tf.keras.layers.GRU(128, return_sequences=True)(inputs)
-    inputs = tf.keras.layers.GRU(64, return_sequences=True)(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(128, return_sequences=True))(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64, return_sequences=True))(inputs)
 
     inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
     return seq_pool, inputs
 
-def cg4_1(self, inputs, is_training):
+def cl4_1(self, inputs, is_training):
     seq_pool=1
     inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
     inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
@@ -220,13 +347,13 @@ def cg4_1(self, inputs, is_training):
 
     inputs = tf.keras.layers.Dense(16)(inputs)
 
-    inputs = tf.keras.layers.GRU(128, return_sequences=True)(inputs)
-    inputs = tf.keras.layers.GRU(64, return_sequences=True)(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(128, return_sequences=True))(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64, return_sequences=True))(inputs)
 
     inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
     return seq_pool, inputs
 
-def cg5(self, inputs, is_training):
+def cl5(self, inputs, is_training):
     seq_pool=1
     inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
     inputs = tf.keras.layers.MaxPool1D(pool_size=2)(inputs)
@@ -243,48 +370,63 @@ def cg5(self, inputs, is_training):
 
     inputs = tf.keras.layers.Dense(8)(inputs)
 
-    inputs = tf.keras.layers.GRU(128, return_sequences=True)(inputs)
-    inputs = tf.keras.layers.GRU(128, return_sequences=True)(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(128, return_sequences=True))(inputs)
+    inputs = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(128, return_sequences=True))(inputs)
 
     inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
     return seq_pool, inputs
 
 
 class Model(object):
-    """Base class for CNN GRU model."""
+    """Base class for CNN BLSTM model."""
 
     def __init__(self, params):
         self.num_classes = params.num_classes
         self.sub_mode = params.sub_mode
     def __call__(self, inputs, is_training):
-        if self.sub_mode == 'cg1':
+        if self.sub_mode == 'cl1':
             with tf.variable_scope(self.sub_mode):
-                return cg1(self, inputs, is_training)
-        elif self.sub_mode == 'cg2':
+                return cl1(self, inputs, is_training)
+        elif self.sub_mode == 'cl2':
             with tf.variable_scope(self.sub_mode):
-                return cg2(self, inputs, is_training)
-        elif self.sub_mode == 'cg3':
+                return cl2(self, inputs, is_training)
+        elif self.sub_mode == 'cl3':
             with tf.variable_scope(self.sub_mode):
-                return cg3(self, inputs, is_training)
-        elif self.sub_mode == 'cg3_1':
+                return cl3(self, inputs, is_training)
+        elif self.sub_mode == 'cl3_0':
             with tf.variable_scope(self.sub_mode):
-                return cg3_1(self, inputs, is_training)
-        elif self.sub_mode == 'cg3_1_1':
+                return cl3_0(self, inputs, is_training)
+        elif self.sub_mode == 'cl3_0_1':
             with tf.variable_scope(self.sub_mode):
-                return cg3_1_1(self, inputs, is_training)
-        elif self.sub_mode == 'cg3_2':
+                return cl3_0_1(self, inputs, is_training)
+        elif self.sub_mode == 'cl3_0_2':
             with tf.variable_scope(self.sub_mode):
-                return cg3_2(self, inputs, is_training)
-        elif self.sub_mode == 'cg3_2_1':
+                return cl3_0_2(self, inputs, is_training)
+        elif self.sub_mode == 'cl3_1':
             with tf.variable_scope(self.sub_mode):
-                return cg3_2_1(self, inputs, is_training)
-        elif self.sub_mode == 'cg4':
+                return cl3_1(self, inputs, is_training)
+        elif self.sub_mode == 'cl3_1_0':
             with tf.variable_scope(self.sub_mode):
-                return cg4(self, inputs, is_training)
-        elif self.sub_mode == 'cg4_1':
+                return cl3_1_0(self, inputs, is_training)
+        elif self.sub_mode == 'cl3_1_1':
             with tf.variable_scope(self.sub_mode):
-                return cg4_1(self, inputs, is_training)
-        elif self.sub_mode == 'cg5':
+                return cl3_1_1(self, inputs, is_training)
+        elif self.sub_mode == 'cl3_1_1_0':
             with tf.variable_scope(self.sub_mode):
-                return cg5(self, inputs, is_training)
+                return cl3_1_1_0(self, inputs, is_training)
+        elif self.sub_mode == 'cl3_2':
+            with tf.variable_scope(self.sub_mode):
+                return cl3_2(self, inputs, is_training)
+        elif self.sub_mode == 'cl3_2_1':
+            with tf.variable_scope(self.sub_mode):
+                return cl3_2_1(self, inputs, is_training)
+        elif self.sub_mode == 'cl4':
+            with tf.variable_scope(self.sub_mode):
+                return cl4(self, inputs, is_training)
+        elif self.sub_mode == 'cl4_1':
+            with tf.variable_scope(self.sub_mode):
+                return cl4_1(self, inputs, is_training)
+        elif self.sub_mode == 'cl5':
+            with tf.variable_scope(self.sub_mode):
+                return cl5(self, inputs, is_training)
 
