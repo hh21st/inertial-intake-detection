@@ -10,6 +10,7 @@ import kyritsis
 import cnn_lstm
 import cnn_gru
 import cnn_blstm
+import fusion
 from tensorflow.python.platform import gfile
 
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -19,14 +20,22 @@ tf.app.flags.DEFINE_integer(
     name='batch_size', default=32, help='Batch size used for training.')
 tf.app.flags.DEFINE_string(
     name='eval_dir', default='../data/eval', help='Directory for eval data.')
+tf.app.flags.DEFINE_string(
+    name='train_dir', default='../data/train', help='Directory for training data.')
 tf.app.flags.DEFINE_enum(
     name='mode', default='train_and_evaluate', enum_values=['train_and_evaluate', 'predict_and_export_csv'],
     help='What mode should tensorflow be started in')
 tf.app.flags.DEFINE_enum(
+    name='fusion', default='accel_gyro', enum_values=['none', 'accel_gyro', 'left_right'],
+    help='Select the model')
+tf.app.flags.DEFINE_string(
+    name='f_mode', default='ag2',
+    help='Select the mode of the proposed fusion model')
+tf.app.flags.DEFINE_enum(
     name='model', default='cnn_blstm', enum_values=['resnet_cnn', 'resnet_cnn_lstm', 'small_cnn', 'kyritsis', 'cnn_lstm', 'cnn_gru', 'cnn_blstm'],
     help='Select the model')
 tf.app.flags.DEFINE_string(
-    name='sub_mode', default='cl3',
+    name='sub_mode', default='cl3_1',
     help='Select the mode of the proposed cnn_lstm, cnn_gru or cnn_blstm model')
 tf.app.flags.DEFINE_string(
     name='model_dir', default='run',
@@ -43,8 +52,6 @@ tf.app.flags.DEFINE_integer(
     name='seq_pool', default=1, help='Factor of sequence pooling in the model.')
 tf.app.flags.DEFINE_integer(
     name='seq_shift', default=1, help='Shift taken in sequence generation.')
-tf.app.flags.DEFINE_string(
-    name='train_dir', default='../data/train', help='Directory for training data.')
 tf.app.flags.DEFINE_float(
     name='train_epochs', default=60, help='Number of training epochs.')
 tf.app.flags.DEFINE_boolean(
@@ -84,6 +91,9 @@ def run_experiment(arg=None):
         resnet_num_filters=64,
         small_kernel_size=10,
         small_num_filters=[64, 64, 128, 128, 256, 256, 512],
+        fusion=FLAGS.fusion,
+        f_mode=FLAGS.f_mode,
+        model=FLAGS.model,
         sub_mode=FLAGS.sub_mode,
         small_pool_size=2,
         num_lstm=64,
@@ -156,7 +166,12 @@ def model_fn(features, labels, mode, params):
     features = tf.reshape(features, [params.batch_size, params.seq_length, features_num])
 
     # Model
-    if FLAGS.model == 'resnet_cnn':
+    if FLAGS.fusion != 'none':
+        assert FLAGS.model == 'cnn_lstm' or FLAGS.model == 'cnn_gru' or FLAGS.model == 'cnn_blstm', "model is not compatible with modality"
+        FLAGS.use_sequence_loss = True
+        model = fusion.Model(params)
+        FLAGS.seq_pool, logits = model(features, is_training)
+    elif FLAGS.model == 'resnet_cnn':
         assert not FLAGS.use_sequence_loss, "Cannot use sequence loss with this model"
         model = resnet_cnn.Model(params)
     elif FLAGS.model == 'resnet_cnn_lstm':
@@ -183,8 +198,9 @@ def model_fn(features, labels, mode, params):
         model = cnn_blstm.Model(params)
         FLAGS.seq_pool, logits = model(features, is_training)
 
-    if FLAGS.model != 'cnn_lstm' and FLAGS.model != 'cnn_gru' and FLAGS.model != 'cnn_blstm':
-        logits = model(features, is_training)
+    if  FLAGS.fusion == 'none':
+        if FLAGS.model != 'cnn_lstm' and FLAGS.model != 'cnn_gru' and FLAGS.model != 'cnn_blstm':
+            logits = model(features, is_training)
 
     # If necessary, slice last sequence step for logits
     final_logits = logits[:,-1,:] if logits.get_shape().ndims == 3 else logits

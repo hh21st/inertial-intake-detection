@@ -381,52 +381,40 @@ class Model(object):
     """Base class for CNN BLSTM model."""
 
     def __init__(self, params):
+        self.params = params
         self.num_classes = params.num_classes
         self.sub_mode = params.sub_mode
     def __call__(self, inputs, is_training):
-        if self.sub_mode == 'cl1':
-            with tf.variable_scope(self.sub_mode):
+        var_scope = 'blstm'
+        with tf.variable_scope(var_scope):
+            if self.sub_mode == 'cl1':
                 return cl1(self, inputs, is_training)
-        elif self.sub_mode == 'cl2':
-            with tf.variable_scope(self.sub_mode):
+            elif self.sub_mode == 'cl2':
                 return cl2(self, inputs, is_training)
-        elif self.sub_mode == 'cl3':
-            with tf.variable_scope(self.sub_mode):
+            elif self.sub_mode == 'cl3':
                 return cl3(self, inputs, is_training)
-        elif self.sub_mode == 'cl3_0':
-            with tf.variable_scope(self.sub_mode):
+            elif self.sub_mode == 'cl3_0':
                 return cl3_0(self, inputs, is_training)
-        elif self.sub_mode == 'cl3_0_1':
-            with tf.variable_scope(self.sub_mode):
+            elif self.sub_mode == 'cl3_0_1':
                 return cl3_0_1(self, inputs, is_training)
-        elif self.sub_mode == 'cl3_0_2':
-            with tf.variable_scope(self.sub_mode):
+            elif self.sub_mode == 'cl3_0_2':
                 return cl3_0_2(self, inputs, is_training)
-        elif self.sub_mode == 'cl3_1':
-            with tf.variable_scope(self.sub_mode):
+            elif self.sub_mode == 'cl3_1':
                 return cl3_1(self, inputs, is_training)
-        elif self.sub_mode == 'cl3_1_0':
-            with tf.variable_scope(self.sub_mode):
+            elif self.sub_mode == 'cl3_1_0':
                 return cl3_1_0(self, inputs, is_training)
-        elif self.sub_mode == 'cl3_1_1':
-            with tf.variable_scope(self.sub_mode):
+            elif self.sub_mode == 'cl3_1_1':
                 return cl3_1_1(self, inputs, is_training)
-        elif self.sub_mode == 'cl3_1_1_0':
-            with tf.variable_scope(self.sub_mode):
+            elif self.sub_mode == 'cl3_1_1_0':
                 return cl3_1_1_0(self, inputs, is_training)
-        elif self.sub_mode == 'cl3_2':
-            with tf.variable_scope(self.sub_mode):
+            elif self.sub_mode == 'cl3_2':
                 return cl3_2(self, inputs, is_training)
-        elif self.sub_mode == 'cl3_2_1':
-            with tf.variable_scope(self.sub_mode):
+            elif self.sub_mode == 'cl3_2_1':
                 return cl3_2_1(self, inputs, is_training)
-        elif self.sub_mode == 'cl4':
-            with tf.variable_scope(self.sub_mode):
+            elif self.sub_mode == 'cl4':
                 return cl4(self, inputs, is_training)
-        elif self.sub_mode == 'cl4_1':
-            with tf.variable_scope(self.sub_mode):
+            elif self.sub_mode == 'cl4_1':
                 return cl4_1(self, inputs, is_training)
-        elif self.sub_mode == 'cl5':
-            with tf.variable_scope(self.sub_mode):
+            elif self.sub_mode == 'cl5':
                 return cl5(self, inputs, is_training)
 
