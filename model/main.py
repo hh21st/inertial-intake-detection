@@ -361,7 +361,7 @@ def input_fn(is_training, data_dir):
     # List files
     files = tf.data.Dataset.list_files(filenames)
     # Lookup table for Labels
-    mapping_strings = tf.constant(["idle", "Intake"])
+    mapping_strings = tf.constant(["Idle", "Intake"])
     table = tf.contrib.lookup.index_table_from_tensor(
         mapping=mapping_strings)
     # Initialize table
@@ -370,8 +370,8 @@ def input_fn(is_training, data_dir):
     # Shuffle files if needed
     if is_training:
         files = files.shuffle(NUM_SHARDS)
-    select_cols = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17]
-    record_defaults = [tf.float64, tf.float64, tf.float64, tf.float64, tf.float64, tf.float64, tf.float64, tf.float64, tf.float64, tf.float64, tf.float64, tf.float64, tf.string]
+    select_cols = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16]
+    record_defaults = [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.string]
     dataset = files.interleave(
         lambda filename:
             tf.contrib.data.CsvDataset(filenames=filename,
@@ -411,7 +411,7 @@ def _get_input_parser(table):
             features = tf.stack([f4, f5, f6, f10, f11, f12, ], 0)
         else: # FLAGS.hand == 'both' and FLAGS.modality == 'both'
             features = tf.stack([f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12], 0)
-        features = tf.cast(features, tf.float64)
+        features = tf.cast(features, tf.float32)
         # Map labels
         labels = table.lookup(l)
         return features, labels
