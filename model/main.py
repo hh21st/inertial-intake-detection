@@ -100,8 +100,8 @@ def run_experiment(arg=None):
     # Run config
     run_config = tf.estimator.RunConfig(
         model_dir=FLAGS.model_dir,
-        save_summary_steps=250,
-        save_checkpoints_steps=1000)
+        save_summary_steps=1000,
+        save_checkpoints_steps=2000)
 
     # Define the estimator
     estimator = tf.estimator.Estimator(
