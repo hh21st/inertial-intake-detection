@@ -469,7 +469,7 @@ def predict_and_export_csv(estimator, eval_input_fn, eval_dir, seq_skip):
     # Get labels and ids
     filenames = gfile.Glob(os.path.join(eval_dir, "*.csv"))
     select_cols = [0, 15]; record_defaults = [tf.int32, tf.string]
-    mapping_strings = tf.constant(["idle", "Intake"])
+    mapping_strings = tf.constant(["Idle", "Intake"])
     table = tf.contrib.lookup.index_table_from_tensor(
         mapping=mapping_strings)
     def input_parser(seqNo, label):

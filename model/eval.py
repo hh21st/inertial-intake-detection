@@ -102,7 +102,7 @@ def eval_stage_2(dets, labels):
 
 def main(args=None):
     # Import the probs and labels from csv
-    probs, labels = import_probs_and_labels(args.eval_dir, args.col_label, args.col_prob)
+    probs, labels = import_probs_and_labels(args.prob_dir, args.col_label, args.col_prob)
     # Calculate UAR for Stage I
     uar = eval_stage_1(probs, labels)
     print('UAR: {}'.format(uar))
@@ -150,14 +150,14 @@ def main(args=None):
 # Run
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Evaluate model Stage II')
-    parser.add_argument('--eval_dir', type=str, default='eval', nargs='?', help='Directory with eval data.')
-    parser.add_argument('--min_dist', type=int, default=16, nargs='?', help='Minimum frames between detections.')
+    parser.add_argument('--prob_dir', type=str, default='eval', nargs='?', help='Directory with eval data.')
+    parser.add_argument('--min_dist', type=int, default=128, nargs='?', help='Minimum frames between detections.')
     parser.add_argument('--threshold', type=float, default=0.9, nargs='?', help='Detection threshold probability')
     parser.add_argument('--mode', type=str, default='evaluate', nargs='?', help='Evaluation or estimation and evaluation')
     parser.add_argument('--min_threshold', type=float, default=0.5, nargs='?', help='Minimum detection threshold probability')
     parser.add_argument('--max_threshold', type=float, default=1, nargs='?', help='Maximum detection threshold probability')
     parser.add_argument('--inc_threshold', type=float, default=0.001, nargs='?', help='Increment for detection threshold search')
-    parser.add_argument('--col_label', type=int, default=2, nargs='?', help='Col number of label in csv')
-    parser.add_argument('--col_prob', type=int, default=3, nargs='?', help='Col number of probability in csv')
+    parser.add_argument('--col_label', type=int, default=1, nargs='?', help='Col number of label in csv')
+    parser.add_argument('--col_prob', type=int, default=2, nargs='?', help='Col number of probability in csv')
     args = parser.parse_args()
     main(args)
