@@ -430,6 +430,8 @@ class Model(object):
                 return cl4_1(self, inputs, is_training)
             elif self.sub_mode == 'cl5':
                 return cl5(self, inputs, is_training)
+            else:
+                raise RuntimeError('sub mode {0} is not implemented'.format(self.sub_mode))
 
 
 

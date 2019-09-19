@@ -147,6 +147,8 @@ class Model(object):
                 return cl3_0_2(self, inputs, is_training)
             elif self.sub_mode == 'cl3_1':
                 return cl3_1(self, inputs, is_training)
+            elif self.sub_mode == 'cl3_1_nd':
+                return cl3_1(self, inputs, is_training)
             elif self.sub_mode == 'cl3_1_0':
                 return cl3_1_0(self, inputs, is_training)
             elif self.sub_mode == 'cl3_1_1':
@@ -163,4 +165,6 @@ class Model(object):
                 return cl4_1(self, inputs, is_training)
             elif self.sub_mode == 'cl5':
                 return cl5(self, inputs, is_training)
+            else:
+                raise RuntimeError('sub mode {0} is not implemented'.format(self.sub_mode))
 

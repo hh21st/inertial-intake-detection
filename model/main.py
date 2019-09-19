@@ -19,23 +19,26 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_integer(
     name='batch_size', default=32, help='Batch size used for training.')
 tf.app.flags.DEFINE_string(
-    name='eval_dir', default='../data/eval', help='Directory for eval data.')
+    name='eval_dir', default='C:\H\PhD\ORIBA\Model\FileGen\OREBA\smo_0.125', help='Directory for eval data.')
 tf.app.flags.DEFINE_string(
-    name='train_dir', default='../data/train', help='Directory for training data.')
+    name='train_dir', default='C:\H\PhD\ORIBA\Model\FileGen\OREBA\smo_0.125', help='Directory for training data.')
 tf.app.flags.DEFINE_enum(
     name='mode', default='train_and_evaluate', enum_values=['train_and_evaluate', 'predict_and_export_csv'],
     help='What mode should tensorflow be started in')
 tf.app.flags.DEFINE_enum(
-    name='fusion', default='accel_gyro', enum_values=['none', 'accel_gyro', 'left_right'],
+    name='fusion', default='none', enum_values=['none', 'accel_gyro', 'dom_ndom'],
     help='Select the model')
+tf.app.flags.DEFINE_enum(
+    name='f_strategy', default='earliest', enum_values=['earliest', 'early', 'late'],
+    help='Select the fusion strategy')
 tf.app.flags.DEFINE_string(
-    name='f_mode', default='ag2',
+    name='f_mode', default='',
     help='Select the mode of the proposed fusion model')
 tf.app.flags.DEFINE_enum(
-    name='model', default='cnn_blstm', enum_values=['resnet_cnn', 'resnet_cnn_lstm', 'small_cnn', 'kyritsis', 'cnn_lstm', 'cnn_gru', 'cnn_blstm'],
+    name='model', default='', enum_values=['resnet_cnn', 'resnet_cnn_lstm', 'small_cnn', 'kyritsis', 'cnn_lstm', 'cnn_gru', 'cnn_blstm'],
     help='Select the model')
 tf.app.flags.DEFINE_string(
-    name='sub_mode', default='cl3_1',
+    name='sub_mode', default='',
     help='Select the mode of the proposed cnn_lstm, cnn_gru or cnn_blstm model')
 tf.app.flags.DEFINE_string(
     name='model_dir', default='run',
@@ -57,7 +60,7 @@ tf.app.flags.DEFINE_boolean(
 tf.app.flags.DEFINE_float(
     name='decay_rate', default=0.9, help='Decay rate of the learning rate.')
 tf.app.flags.DEFINE_enum(
-    name='hand', default='both', enum_values=['both', 'left', 'right'],
+    name='hand', default='both', enum_values=['both', 'dom', 'nondom'],
     help='specified data from which hands are included in the input')
 tf.app.flags.DEFINE_enum(
     name='modality', default='both', enum_values=['both', 'accel', 'gyro'],
@@ -90,6 +93,7 @@ def run_experiment(arg=None):
         small_num_filters=[64, 64, 128, 128, 256, 256, 512],
         fusion=FLAGS.fusion,
         f_mode=FLAGS.f_mode,
+        f_strategy=FLAGS.f_strategy,
         model=FLAGS.model,
         sub_mode=FLAGS.sub_mode,
         small_pool_size=2,
@@ -393,22 +397,22 @@ def _get_input_parser(table):
     def input_parser(f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, l):
 
         # Stack features
-        if FLAGS.hand == 'left' and FLAGS.modality == 'accel' :
+        if FLAGS.hand == 'dom' and FLAGS.modality == 'accel' :
             features = tf.stack([f1, f2, f3], 0)
-        elif FLAGS.hand == 'left' and FLAGS.modality == 'gyro' :
+        elif FLAGS.hand == 'dom' and FLAGS.modality == 'gyro' :
             features = tf.stack([f4, f5, f6], 0)
-        elif FLAGS.hand == 'left' and FLAGS.modality == 'both' :
+        elif FLAGS.hand == 'dom' and FLAGS.modality == 'both' :
             features = tf.stack([f1, f2, f3, f4, f5, f6], 0)
-        elif FLAGS.hand == 'right' and FLAGS.modality == 'accel' :
+        elif FLAGS.hand == 'nondom' and FLAGS.modality == 'accel' :
             features = tf.stack([f7, f8, f9], 0)
-        elif FLAGS.hand == 'right' and FLAGS.modality == 'gyro' :
+        elif FLAGS.hand == 'nondom' and FLAGS.modality == 'gyro' :
             features = tf.stack([f10, f11, f12], 0)
-        elif FLAGS.hand == 'right' and FLAGS.modality == 'both' :
+        elif FLAGS.hand == 'nondom' and FLAGS.modality == 'both' :
             features = tf.stack([f7, f8, f9, f10, f11, f12], 0)
         elif FLAGS.hand == 'both' and FLAGS.modality == 'accel' :
             features = tf.stack([f1, f2, f3, f7, f8, f9], 0)
         elif FLAGS.hand == 'both' and FLAGS.modality == 'gyro' :
-            features = tf.stack([f4, f5, f6, f10, f11, f12, ], 0)
+            features = tf.stack([f4, f5, f6, f10, f11, f12], 0)
         else: # FLAGS.hand == 'both' and FLAGS.modality == 'both'
             features = tf.stack([f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12], 0)
         features = tf.cast(features, tf.float32)

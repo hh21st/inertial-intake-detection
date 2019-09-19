@@ -115,4 +115,6 @@ class Model(object):
                 return cg4_1(self, inputs, is_training)
             elif self.sub_mode == 'cg5':
                 return cg5(self, inputs, is_training)
+            else:
+                raise RuntimeError('sub mode {0} is not implemented'.format(self.sub_mode))
 
