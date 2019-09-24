@@ -19,9 +19,9 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_integer(
     name='batch_size', default=32, help='Batch size used for training.')
 tf.app.flags.DEFINE_string(
-    name='eval_dir', default='C:\H\PhD\ORIBA\Model\FileGen\OREBA\smo_0.125', help='Directory for eval data.')
+    name='eval_dir', default='', help='Directory for eval data.')
 tf.app.flags.DEFINE_string(
-    name='train_dir', default='C:\H\PhD\ORIBA\Model\FileGen\OREBA\smo_0.125', help='Directory for training data.')
+    name='train_dir', default='', help='Directory for training data.')
 tf.app.flags.DEFINE_enum(
     name='mode', default='train_and_evaluate', enum_values=['train_and_evaluate', 'predict_and_export_csv'],
     help='What mode should tensorflow be started in')
