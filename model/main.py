@@ -1,6 +1,7 @@
 import os
 import itertools
 import numpy as np
+import math
 import tensorflow as tf
 import best_checkpoint_exporter
 import resnet_cnn
@@ -104,8 +105,8 @@ def run_experiment(arg=None):
     # Run config
     run_config = tf.estimator.RunConfig(
         model_dir=FLAGS.model_dir,
-        save_summary_steps=1000,
-        save_checkpoints_steps=2000)
+        save_summary_steps=2500,
+        save_checkpoints_steps=5000)
 
     # Define the estimator
     estimator = tf.estimator.Estimator(
@@ -286,9 +287,11 @@ def model_fn(features, labels, mode, params):
         global_step = tf.train.get_or_create_global_step()
 
         def _decay_fn(learning_rate, global_step):
-            return tf.train.exponential_decay(
+            learning_rate = tf.train.exponential_decay(
                 learning_rate=learning_rate, global_step=global_step,
                 decay_steps=params.steps_per_epoch, decay_rate=params.decay_rate)
+            lowest_learning_rate = 2 * math.exp(-7)
+            return tf.cond(learning_rate >= lowest_learning_rate, lambda:learning_rate, lambda: lowest_learning_rate)
 
         # Learning rate
         learning_rate = _decay_fn(params.base_learning_rate, global_step)
