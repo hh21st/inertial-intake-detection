@@ -1,7 +1,6 @@
 import os
 import itertools
 import numpy as np
-import math
 import tensorflow as tf
 import best_checkpoint_exporter
 import resnet_cnn
@@ -36,7 +35,7 @@ tf.app.flags.DEFINE_string(
     name='f_mode', default='',
     help='Select the mode of the proposed fusion model')
 tf.app.flags.DEFINE_enum(
-    name='model', default='', enum_values=['resnet_cnn', 'resnet_cnn_lstm', 'small_cnn', 'kyritsis', 'cnn_lstm', 'cnn_gru', 'cnn_blstm'],
+    name='model', default='cnn_lstm', enum_values=['resnet_cnn', 'resnet_cnn_lstm', 'small_cnn', 'kyritsis', 'cnn_lstm', 'cnn_gru', 'cnn_blstm'],
     help='Select the model')
 tf.app.flags.DEFINE_string(
     name='sub_mode', default='',
@@ -77,6 +76,7 @@ def run_experiment(arg=None):
     # Model parameters
     params = tf.contrib.training.HParams(
         base_learning_rate=3e-4,
+        lowest_learning_rate = 2e-7,
         batch_size=FLAGS.batch_size,
         decay_rate=FLAGS.decay_rate,
         dropout=0.5,
@@ -286,15 +286,14 @@ def model_fn(features, labels, mode, params):
     if is_training:
         global_step = tf.train.get_or_create_global_step()
 
-        def _decay_fn(learning_rate, global_step):
+        def _decay_fn(learning_rate, global_step, lowest_learning_rate):
             learning_rate = tf.train.exponential_decay(
                 learning_rate=learning_rate, global_step=global_step,
                 decay_steps=params.steps_per_epoch, decay_rate=params.decay_rate)
-            lowest_learning_rate = 2 * math.exp(-7)
             return tf.cond(learning_rate >= lowest_learning_rate, lambda:learning_rate, lambda: lowest_learning_rate)
 
         # Learning rate
-        learning_rate = _decay_fn(params.base_learning_rate, global_step)
+        learning_rate = _decay_fn(params.base_learning_rate, global_step, params.lowest_learning_rate)
         tf.identity(learning_rate, name='learning_rate')
         tf.summary.scalar('training/learning_rate', learning_rate)
 
