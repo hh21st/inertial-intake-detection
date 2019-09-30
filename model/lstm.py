@@ -122,6 +122,19 @@ def cl5(self, inputs, is_training):
     inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
     return inputs
 
+def d13_nd(self, inputs, is_training):
+    inputs = tf.keras.layers.LSTM(128, return_sequences=True)(inputs)
+
+    inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
+    return inputs
+
+def d13_nd_2(self, inputs, is_training):
+    inputs = tf.keras.layers.LSTM(128, return_sequences=True)(inputs)
+    inputs = tf.keras.layers.LSTM(128, return_sequences=True)(inputs)
+
+    inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
+    return inputs
+
 
 class Model(object):
     """Base class for LSTM model."""
@@ -165,6 +178,10 @@ class Model(object):
                 return cl4_1(self, inputs, is_training)
             elif self.sub_mode == 'cl5':
                 return cl5(self, inputs, is_training)
+            elif self.sub_mode == 'd13_nd':
+                return d13_nd(self, inputs, is_training)
+            elif self.sub_mode == 'd13_nd_2':
+                return d13_nd_2(self, inputs, is_training)
             else:
                 raise RuntimeError('sub mode {0} is not implemented'.format(self.sub_mode))
 

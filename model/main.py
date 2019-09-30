@@ -38,7 +38,7 @@ tf.app.flags.DEFINE_enum(
     name='model', default='cnn_lstm', enum_values=['resnet_cnn', 'resnet_cnn_lstm', 'small_cnn', 'kyritsis', 'cnn_lstm', 'cnn_gru', 'cnn_blstm'],
     help='Select the model')
 tf.app.flags.DEFINE_string(
-    name='sub_mode', default='',
+    name='sub_mode', default='d13_nd',
     help='Select the mode of the proposed cnn_lstm, cnn_gru or cnn_blstm model')
 tf.app.flags.DEFINE_string(
     name='model_dir', default='run',

@@ -445,23 +445,48 @@ def cl5(self, inputs, is_training):
     inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
     return seq_pool, inputs
 
-def clnd9(self, inputs, is_training):
-    seq_pool=1 #=> seq_length= seq_length/seq_pool = 128 /1 = 128
-    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=1, padding='same', activation=tf.nn.relu)(inputs)
+def d13_nd(self, inputs, is_training):
+    seq_pool=1
+    inputs = tf.keras.layers.Conv1D(filters=512, kernel_size=1, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=256, kernel_size=1, padding='same', activation=tf.nn.relu)(inputs)
     inputs = tf.keras.layers.Conv1D(filters=248, kernel_size=3, padding='same', activation=tf.nn.relu)(inputs)
-    inputs = tf.keras.layers.Conv1D(filters=248, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
-    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
-    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
-    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
-    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
-    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
-    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=10, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=3, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=5, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=7, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=7, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=7, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=7, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=9, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=9, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=9, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=9, padding='same', activation=tf.nn.relu)(inputs)
 
     inputs = tf.keras.layers.LSTM(128, return_sequences=True)(inputs)
 
     inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
     return seq_pool, inputs
 
+def d13_nd_2(self, inputs, is_training):
+    seq_pool=1
+    inputs = tf.keras.layers.Conv1D(filters=512, kernel_size=1, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=256, kernel_size=1, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=248, kernel_size=3, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=3, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=5, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=7, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=128, kernel_size=7, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=7, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=7, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=9, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=9, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=9, padding='same', activation=tf.nn.relu)(inputs)
+    inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=9, padding='same', activation=tf.nn.relu)(inputs)
+
+    inputs = tf.keras.layers.LSTM(128, return_sequences=True)(inputs)
+    inputs = tf.keras.layers.LSTM(128, return_sequences=True)(inputs)
+
+    inputs = tf.keras.layers.Dense(self.num_classes)(inputs)
+    return seq_pool, inputs
 
 
 class Model(object):
@@ -510,8 +535,10 @@ class Model(object):
                 return cl4_1(self, inputs, is_training)
             elif self.sub_mode == 'cl5':
                 return cl5(self, inputs, is_training)
-            elif self.sub_mode == 'clnd9':
-                return clnd9(self, inputs, is_training)
+            elif self.sub_mode == 'd13_nd':
+                return d13_nd(self, inputs, is_training)
+            elif self.sub_mode == 'd13_nd_2':
+                return d13_nd_2(self, inputs, is_training)
             else:
                 raise RuntimeError('sub mode {0} is not implemented'.format(self.sub_mode))
 
