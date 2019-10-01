@@ -19,26 +19,26 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_integer(
     name='batch_size', default=32, help='Batch size used for training.')
 tf.app.flags.DEFINE_string(
-    name='eval_dir', default='', help='Directory for eval data.')
+    name='eval_dir', default=r'C:\H\PhD\ORIBA\Model\FileGen\OREBA\smo_0.125', help='Directory for eval data.')
 tf.app.flags.DEFINE_string(
-    name='train_dir', default='', help='Directory for training data.')
+    name='train_dir', default=r'C:\H\PhD\ORIBA\Model\FileGen\OREBA\smo_0.125', help='Directory for training data.')
 tf.app.flags.DEFINE_enum(
     name='mode', default='train_and_evaluate', enum_values=['train_and_evaluate', 'predict_and_export_csv'],
     help='What mode should tensorflow be started in')
 tf.app.flags.DEFINE_enum(
-    name='fusion', default='none', enum_values=['none', 'accel_gyro', 'dom_ndom'],
+    name='fusion', default='accel_gyro_dom_ndom', enum_values=['none', 'accel_gyro', 'dom_ndom', 'accel_gyro_dom_ndom'],
     help='Select the model')
 tf.app.flags.DEFINE_enum(
-    name='f_strategy', default='earliest', enum_values=['earliest', 'early', 'late'],
+    name='f_strategy', default='early', enum_values=['earliest', 'early', 'late'],
     help='Select the fusion strategy')
 tf.app.flags.DEFINE_string(
-    name='f_mode', default='',
+    name='f_mode', default='agdnd1',
     help='Select the mode of the proposed fusion model')
 tf.app.flags.DEFINE_enum(
-    name='model', default='cnn_lstm', enum_values=['resnet_cnn', 'resnet_cnn_lstm', 'small_cnn', 'kyritsis', 'cnn_lstm', 'cnn_gru', 'cnn_blstm'],
+    name='model', default='cnn_rnn', enum_values=['resnet_cnn', 'resnet_cnn_lstm', 'small_cnn', 'kyritsis', 'cnn_lstm', 'cnn_gru', 'cnn_blstm', 'cnn_rnn'],
     help='Select the model')
 tf.app.flags.DEFINE_string(
-    name='sub_mode', default='d13_nd',
+    name='sub_mode', default='d:4;ks:1357|d:1;t:l',
     help='Select the mode of the proposed cnn_lstm, cnn_gru or cnn_blstm model')
 tf.app.flags.DEFINE_string(
     name='model_dir', default='run',
@@ -166,7 +166,7 @@ def model_fn(features, labels, mode, params):
 
     # Model
     if FLAGS.fusion != 'none':
-        assert FLAGS.model == 'cnn_lstm' or FLAGS.model == 'cnn_gru' or FLAGS.model == 'cnn_blstm', "model is not compatible with modality"
+        assert FLAGS.model == 'cnn_rnn', "model is not compatible with modality"
         FLAGS.use_sequence_loss = True
         model = fusion.Model(params)
         FLAGS.seq_pool, logits = model(features, is_training)
