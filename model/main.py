@@ -49,6 +49,9 @@ tf.app.flags.DEFINE_integer(
     name='seq_length', default=128,
     help='Number of sequence elements.')
 tf.app.flags.DEFINE_integer(
+    name='final_labels_index', default=-1,
+    help='index of labels used for validation and test.')
+tf.app.flags.DEFINE_integer(
     name='seq_pool', default=1, help='Factor of sequence pooling in the model.')
 tf.app.flags.DEFINE_integer(
     name='seq_shift', default=1, help='Shift taken in sequence generation.')
@@ -220,7 +223,7 @@ def model_fn(features, labels, mode, params):
             })
 
     # If necessary, slice last sequence step for labels
-    final_labels = labels[:,-1] if labels.get_shape().ndims == 2 else labels
+    final_labels = labels[:,FLAGS.final_labels_index] if labels.get_shape().ndims == 2 else labels
 
     if labels.get_shape().ndims == 2:
         seq_length = int(FLAGS.seq_length / FLAGS.seq_pool)
