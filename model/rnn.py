@@ -30,8 +30,8 @@ class Model(object):
         self.params = params
         self.num_classes = params.num_classes
         self.sub_mode = params.sub_mode
-    def __call__(self, inputs, is_training):
-        var_scope = 'rnn'
+    def __call__(self, inputs, var_scope_suffix, is_training):
+        var_scope = 'rnn' + var_scope_suffix
         with tf.variable_scope(var_scope):
             sub_mode = self.sub_mode.split('|')[1]
             sub_mode_dict = dict(item.split(':') for item in sub_mode.split(';'))
