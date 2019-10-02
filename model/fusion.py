@@ -71,6 +71,12 @@ def fuse_early_fork(params, inputs1, inputs2, inputs3, inputs4, is_training):
     inputs = get_rnn_model(params ,inputs, is_training)
     return seq_pool1, inputs
 
+def fuse_earliest(params, inputs, is_training):
+    cnn1 = cnn.Model(params) 
+    seq_pool, inputs = cnn1(inputs, '_inputs1', is_training)
+    inputs = get_rnn_model(params ,inputs, is_training)
+    return seq_pool, inputs
+
 def dnd(params, inputs, is_training):
     
     inputs_dom = inputs[:,:,0:6]
@@ -151,7 +157,9 @@ class Model(object):
     def __init__(self, params):
         self.params = params
     def __call__(self, inputs, is_training):
-        if self.params.fusion == 'accel_gyro':
+        if self.params.fusion == 'earliest':
+            return fuse_earliest(self.params, inputs, is_training)
+        elif self.params.fusion == 'accel_gyro':
             if self.params.f_mode == 'ag1':
                 return ag1(self.params, inputs, is_training)
             if self.params.f_mode == 'ag2':

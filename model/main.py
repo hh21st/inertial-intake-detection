@@ -26,10 +26,10 @@ tf.app.flags.DEFINE_enum(
     name='mode', default='train_and_evaluate', enum_values=['train_and_evaluate', 'predict_and_export_csv'],
     help='What mode should tensorflow be started in')
 tf.app.flags.DEFINE_enum(
-    name='fusion', default='accel_gyro_dom_ndom', enum_values=['none', 'accel_gyro', 'dom_ndom', 'accel_gyro_dom_ndom'],
+    name='fusion', default='earliest', enum_values=['none', 'earliest', 'accel_gyro', 'dom_ndom', 'accel_gyro_dom_ndom'],
     help='Select the model')
 tf.app.flags.DEFINE_enum(
-    name='f_strategy', default='early', enum_values=['earliest', 'early', 'late'],
+    name='f_strategy', default='earliest', enum_values=['earliest', 'early', 'late'],
     help='Select the fusion strategy')
 tf.app.flags.DEFINE_string(
     name='f_mode', default='agdnd1',
@@ -166,6 +166,8 @@ def model_fn(features, labels, mode, params):
 
     # Model
     if FLAGS.fusion != 'none':
+        if FLAGS.fusion == 'earliest':
+            assert FLAGS.f_strategy == 'earliest', "fusion strategy is not compatible with fusion model"
         assert FLAGS.model == 'cnn_rnn', "model is not compatible with modality"
         FLAGS.use_sequence_loss = True
         model = fusion.Model(params)
