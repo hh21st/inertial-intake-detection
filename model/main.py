@@ -29,7 +29,7 @@ tf.app.flags.DEFINE_enum(
     name='fusion', default='accel_gyro_dom_ndom', enum_values=['none', 'earliest', 'accel_gyro', 'dom_ndom', 'accel_gyro_dom_ndom'],
     help='Select the model')
 tf.app.flags.DEFINE_enum(
-    name='f_strategy', default='early_merge_cnn', enum_values=['earliest', 'early', 'early_merge_cnn', 'late'],
+    name='f_strategy', default='early_merge_rnn', enum_values=['earliest', 'early', 'early_merge_cnn', 'early_merge_rnn', 'late'],
     help='Select the fusion strategy')
 tf.app.flags.DEFINE_string(
     name='f_mode', default='agdnd1',
@@ -171,8 +171,14 @@ def model_fn(features, labels, mode, params):
     if FLAGS.fusion != 'none':
         if FLAGS.f_strategy == 'earliest':
             assert FLAGS.fusion == 'earliest', "fusion strategy is not compatible with fusion model"
-        else: #elif FLAGS.f_strategy == 'early' or FLAGS.f_strategy == 'late':
-            assert FLAGS.fusion != 'earliest', "fusion strategy is not compatible with fusion model"
+        elif FLAGS.f_strategy == 'early':
+            assert FLAGS.fusion == 'accel_gyro' or FLAGS.fusion == 'dom_ndom' or FLAGS.fusion == 'accel_gyro_dom_ndom', "fusion strategy is not compatible with fusion model"
+        elif FLAGS.f_strategy == 'early_merge_cnn':
+            assert FLAGS.fusion == 'accel_gyro' or FLAGS.fusion == 'dom_ndom' or FLAGS.fusion == 'accel_gyro_dom_ndom', "fusion strategy is not compatible with fusion model"
+        elif FLAGS.f_strategy == 'early_merge_rnn':
+            assert FLAGS.fusion == 'accel_gyro' or FLAGS.fusion == 'dom_ndom' or FLAGS.fusion == 'accel_gyro_dom_ndom', "fusion strategy is not compatible with fusion model"
+        elif FLAGS.f_strategy == 'late':
+            assert FLAGS.fusion == 'accel_gyro' or FLAGS.fusion == 'dom_ndom' or FLAGS.fusion == 'accel_gyro_dom_ndom', "fusion strategy is not compatible with fusion model"
         assert FLAGS.model == 'cnn_rnn', "model is not compatible with modality"
         FLAGS.use_sequence_loss = True
         model = fusion.Model(params)
