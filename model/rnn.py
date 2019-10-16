@@ -2,7 +2,7 @@
 
 import tensorflow as tf
 
-def r(inputs, type, depth, units, num_classes):
+def r(inputs, type, depth, units, num_classes, has_dense):
     def lstm(inputs, units):
         return tf.keras.layers.LSTM(units=units, return_sequences=True)(inputs)
     def blstm(inputs, units):
@@ -20,7 +20,9 @@ def r(inputs, type, depth, units, num_classes):
             raise RuntimeError('type {0} is not defined'.format(type))
     for i in range(depth):
         inputs = get_rnn_layer(type, inputs, units)
-    return tf.keras.layers.Dense(num_classes)(inputs)
+    if has_dense:
+        inputs = tf.keras.layers.Dense(num_classes)(inputs)
+    return inputs
 
 
 class Model(object):
@@ -30,7 +32,7 @@ class Model(object):
         self.params = params
         self.num_classes = params.num_classes
         self.sub_mode = params.sub_mode
-    def __call__(self, inputs, var_scope_suffix, is_training):
+    def __call__(self, inputs, var_scope_suffix, is_training, has_dense = True):
         var_scope = 'rnn' + var_scope_suffix
         with tf.variable_scope(var_scope):
             sub_mode = self.sub_mode.split('|')[1]
@@ -38,5 +40,5 @@ class Model(object):
             type = sub_mode_dict['t'] if 't' in sub_mode_dict else 'l' # 'l' or 'b' or 'g'
             depth = int(sub_mode_dict['d']) if 'd' in sub_mode_dict else 2
             units = int(sub_mode_dict['u']) if 'u' in sub_mode_dict else 64 
-            return r(inputs, type, depth, units, self.num_classes)
+            return r(inputs, type, depth, units, self.num_classes, has_dense)
 

@@ -9,12 +9,12 @@ def get_cnn_model(params, inputs, var_scope_suffix, is_training):
     cnn_model = cnn.Model(params) 
     return cnn_model(inputs, '_inputs1', is_training)
 
-def get_rnn_model(params, inputs, var_scope_suffix, is_training):
+def get_rnn_model(params, inputs, var_scope_suffix, is_training, has_dense = True):
     if params.model == 'cnn_rnn':
         rnn_model = rnn.Model(params)
     else:
         raise RuntimeError('model {0} is not applicable'.format(params.model))
-    return rnn_model(inputs, var_scope_suffix, is_training)
+    return rnn_model(inputs, var_scope_suffix, is_training, has_dense)
 
 def fuse_late(params, inputs1, inputs2, is_training):
     seq_pool1, inputs1 = get_cnn_model(params, inputs1, '_inputs1', is_training)
@@ -66,8 +66,8 @@ def fuse_early_merge_rnn(params, inputs1, inputs2, is_training):
     seq_pool1, inputs1 = get_cnn_model(params, inputs1, '_inputs1', is_training)
     seq_pool2, inputs2 = get_cnn_model(params, inputs2, '_inputs2', is_training)
     assert seq_pool1 == seq_pool2, 'seq_pool for inputs 1 is {} whereas seq_pool for inputs 2 is {}'.format(seq_pool1, seq_pool2)
-    inputs1 = get_rnn_model(params, inputs1, '_inputs1', is_training)
-    inputs2 = get_rnn_model(params, inputs2, '_inputs2', is_training)
+    inputs1 = get_rnn_model(params, inputs1, '_inputs1', is_training, False)
+    inputs2 = get_rnn_model(params, inputs2, '_inputs2', is_training, False)
     inputs = tf.concat([inputs1, inputs2], axis = 2)
     inputs = get_rnn_model(params ,inputs, '_inputs', is_training)
     return seq_pool1, inputs
@@ -106,10 +106,10 @@ def fuse_early_fork_merge_rnn(params, inputs1, inputs2, inputs3, inputs4, is_tra
     assert seq_pool1 == seq_pool2, 'seq_pool for inputs 1 is {} whereas seq_pool for inputs 2 is {}'.format(seq_pool1, seq_pool2)
     assert seq_pool3 == seq_pool4, 'seq_pool for inputs 3 is {} whereas seq_pool for inputs 4 is {}'.format(seq_pool3, seq_pool4)
     assert seq_pool1 == seq_pool3, 'seq_pool for inputs 1 is {} whereas seq_pool for inputs 3 is {}'.format(seq_pool1, seq_pool3)
-    inputs1 = get_rnn_model(params, inputs1, '_inputs1', is_training)
-    inputs2 = get_rnn_model(params, inputs2, '_inputs2', is_training)
-    inputs3 = get_rnn_model(params, inputs3, '_inputs3', is_training)
-    inputs4 = get_rnn_model(params, inputs4, '_inputs4', is_training)
+    inputs1 = get_rnn_model(params, inputs1, '_inputs1', is_training, False)
+    inputs2 = get_rnn_model(params, inputs2, '_inputs2', is_training, False)
+    inputs3 = get_rnn_model(params, inputs3, '_inputs3', is_training, False)
+    inputs4 = get_rnn_model(params, inputs4, '_inputs4', is_training, False)
     inputs = tf.concat([inputs1, inputs2, inputs3, inputs4], axis = 2)
     inputs = get_rnn_model(params ,inputs, '_inputs', is_training)
     return seq_pool1, inputs
