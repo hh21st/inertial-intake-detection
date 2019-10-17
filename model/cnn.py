@@ -35,24 +35,26 @@ def c13(self, inputs, is_training):
     inputs = tf.keras.layers.Conv1D(filters=64, kernel_size=9, padding='same', activation=tf.nn.relu)(inputs)
     return seq_pool, inputs
 
-def c(inputs, depth, kernel_sizes, max_kernel_size, filters, dense_units):
-    def cond1d(inputs, filters, kernel_size):
-        return tf.keras.layers.Conv1D(filters=filters, kernel_size=kernel_size, padding='same', activation=tf.nn.relu)(inputs)
+def c(inputs, depth, kernel_sizes, max_kernel_size, filters, padding, padding_size, dense_units):
+    def cond1d(inputs, filters, kernel_size, padding):
+        return tf.keras.layers.Conv1D(filters=filters, kernel_size=kernel_size, padding=padding, activation=tf.nn.relu)(inputs)
     seq_pool=1 # seq_pool=1 => seq_length= seq_length/seq_pool = 128 /1 = 128
     for i in range(depth):
         kernel_size = kernel_sizes[i]
         kernel_size = kernel_size if kernel_size<=max_kernel_size else max_kernel_size
-        inputs = cond1d(inputs, filters, kernel_size)
-        if dense_units>0:
-            inputs = tf.keras.layers.Dense(dense_units)(inputs)
-    return seq_pool, inputs
+        if padding=='valid':
+            padding_size+=kernel_size-1
+        inputs = cond1d(inputs, filters, kernel_size, padding)
+    if dense_units>0:
+        inputs = tf.keras.layers.Dense(dense_units)(inputs)
+    return seq_pool, padding_size, inputs
 
 class Model(object):
     """Base class for CNN model."""
 
     def __init__(self, params):
         self.sub_mode = params.sub_mode
-    def __call__(self, inputs, var_scope_suffix, is_training):
+    def __call__(self, inputs, var_scope_suffix, is_training, padding_size):
         var_scope = 'cnn' + var_scope_suffix
         with tf.variable_scope(var_scope):
             sub_mode = self.sub_mode.split('|')[0]
@@ -60,9 +62,10 @@ class Model(object):
             depth = int(sub_mode_dict['d']) 
             kernel_sizes = [int(item) for item in str(sub_mode_dict['ks'])] if 'ks' in sub_mode_dict else list(range(1,int(depth)*2,2)) 
             filters = int(sub_mode_dict['fs']) if 'fs' in sub_mode_dict else 128 
+            padding = sub_mode_dict['pad'] if 'pad' in sub_mode_dict else 'same' 
             max_kernel_size = int(sub_mode_dict['mks']) if 'mks' in sub_mode_dict else 9 
             dense_units = int(sub_mode_dict['du']) if 'du' in sub_mode_dict else 0 
-            return c(inputs, depth, kernel_sizes, max_kernel_size, filters, dense_units)
+            return c(inputs, depth, kernel_sizes, max_kernel_size, filters, padding, padding_size, dense_units)
 
 
 

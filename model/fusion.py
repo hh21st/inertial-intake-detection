@@ -5,9 +5,9 @@ import tensorflow as tf
 import cnn
 import rnn
 
-def get_cnn_model(params, inputs, var_scope_suffix, is_training):
+def get_cnn_model(params, inputs, var_scope_suffix, is_training, padding_size = 0):
     cnn_model = cnn.Model(params) 
-    return cnn_model(inputs, '_inputs1', is_training)
+    return cnn_model(inputs, '_inputs1', is_training, padding_size)
 
 def get_rnn_model(params, inputs, var_scope_suffix, is_training, has_dense = True):
     if params.model == 'cnn_rnn':
@@ -17,20 +17,20 @@ def get_rnn_model(params, inputs, var_scope_suffix, is_training, has_dense = Tru
     return rnn_model(inputs, var_scope_suffix, is_training, has_dense)
 
 def fuse_late(params, inputs1, inputs2, is_training):
-    seq_pool1, inputs1 = get_cnn_model(params, inputs1, '_inputs1', is_training)
-    seq_pool2, inputs2 = get_cnn_model(params, inputs2, '_inputs2', is_training)
+    seq_pool1, padding_size1, inputs1 = get_cnn_model(params, inputs1, '_inputs1', is_training)
+    seq_pool2, padding_size2, inputs2 = get_cnn_model(params, inputs2, '_inputs2', is_training)
     assert seq_pool1 == seq_pool2, 'seq_pool for inputs 1 is {} whereas seq_pool for inputs 2 is {}'.format(seq_pool1, seq_pool2)
     inputs1 = get_rnn_model(params, inputs1, '_inputs1', is_training)
     inputs1 = tf.nn.softmax(inputs1, name='softmax_tensor')
     inputs2 = get_rnn_model(params, inputs2, '_inputs2', is_training)
     inputs2 = tf.nn.softmax(inputs2, name='softmax_tensor')
-    return seq_pool1, inputs1, inputs2
+    return seq_pool1, padding_size1, inputs1, inputs2
 
 def fuse_late_fork(params, inputs1, inputs2, inputs3, inputs4, is_training):
-    seq_pool1, inputs1 = get_cnn_model(params, inputs1, '_inputs1', is_training)
-    seq_pool2, inputs2 = get_cnn_model(params, inputs2, '_inputs2', is_training)
-    seq_pool3, inputs3 = get_cnn_model(params, inputs3, '_inputs3', is_training)
-    seq_pool4, inputs4 = get_cnn_model(params, inputs4, '_inputs4', is_training)
+    seq_pool1, padding_size1, inputs1 = get_cnn_model(params, inputs1, '_inputs1', is_training)
+    seq_pool2, padding_size2, inputs2 = get_cnn_model(params, inputs2, '_inputs2', is_training)
+    seq_pool3, padding_size3, inputs3 = get_cnn_model(params, inputs3, '_inputs3', is_training)
+    seq_pool4, padding_size4, inputs4 = get_cnn_model(params, inputs4, '_inputs4', is_training)
     assert seq_pool1 == seq_pool2, 'seq_pool for inputs 1 is {} whereas seq_pool for inputs 2 is {}'.format(seq_pool1, seq_pool2)
     assert seq_pool3 == seq_pool4, 'seq_pool for inputs 3 is {} whereas seq_pool for inputs 4 is {}'.format(seq_pool3, seq_pool4)
     assert seq_pool1 == seq_pool3, 'seq_pool for inputs 1 is {} whereas seq_pool for inputs 3 is {}'.format(seq_pool1, seq_pool3)
@@ -42,67 +42,67 @@ def fuse_late_fork(params, inputs1, inputs2, inputs3, inputs4, is_training):
     inputs3 = tf.nn.softmax(inputs3, name='softmax_tensor')
     inputs4 = get_rnn_model(params, inputs4, '_inputs4', is_training)
     inputs4 = tf.nn.softmax(inputs4, name='softmax_tensor')
-    return seq_pool1, inputs1, inputs2, inputs4, inputs4
+    return seq_pool1, padding_size1, inputs1, inputs2, inputs4, inputs4
 
 def fuse_early(params, inputs1, inputs2, is_training):
-    seq_pool1, inputs1 = get_cnn_model(params, inputs1, '_inputs1', is_training)
-    seq_pool2, inputs2 = get_cnn_model(params, inputs2, '_inputs2', is_training)
+    seq_pool1, padding_size1, inputs1 = get_cnn_model(params, inputs1, '_inputs1', is_training)
+    seq_pool2, padding_size2, inputs2 = get_cnn_model(params, inputs2, '_inputs2', is_training)
     assert seq_pool1 == seq_pool2, 'seq_pool for inputs 1 is {} whereas seq_pool for inputs 2 is {}'.format(seq_pool1, seq_pool2)
     inputs = tf.concat([inputs1, inputs2], axis = 2)
     inputs = get_rnn_model(params , inputs, '_inputs', is_training)
-    return seq_pool1, inputs
+    return seq_pool1, padding_size1, inputs
 
 def fuse_early_merge_cnn(params, inputs1, inputs2, is_training):
-    seq_pool1, inputs1 = get_cnn_model(params, inputs1, '_inputs1', is_training)
-    seq_pool2, inputs2 = get_cnn_model(params, inputs2, '_inputs2', is_training)
+    seq_pool1, padding_size1, inputs1 = get_cnn_model(params, inputs1, '_inputs1', is_training)
+    seq_pool2, padding_size2, inputs2 = get_cnn_model(params, inputs2, '_inputs2', is_training)
     assert seq_pool1 == seq_pool2, 'seq_pool for inputs 1 is {} whereas seq_pool for inputs 2 is {}'.format(seq_pool1, seq_pool2)
     inputs = tf.concat([inputs1, inputs2], axis = 2)
-    seq_pool, inputs = get_cnn_model(params, inputs, '_inputs', is_training)
+    seq_pool, padding_size, inputs = get_cnn_model(params, inputs, '_inputs', is_training, padding_size)
     assert seq_pool1 == seq_pool, 'seq_pool for inputs 1 is {} whereas seq_pool for inputs (merge) is {}'.format(seq_pool1, seq_pool)
     inputs = get_rnn_model(params ,inputs, '_inputs', is_training)
-    return seq_pool1, inputs
+    return seq_pool1, padding_size1, inputs
 
 def fuse_early_merge_rnn(params, inputs1, inputs2, is_training):
-    seq_pool1, inputs1 = get_cnn_model(params, inputs1, '_inputs1', is_training)
-    seq_pool2, inputs2 = get_cnn_model(params, inputs2, '_inputs2', is_training)
+    seq_pool1, padding_size1, inputs1 = get_cnn_model(params, inputs1, '_inputs1', is_training)
+    seq_pool2, padding_size2, inputs2 = get_cnn_model(params, inputs2, '_inputs2', is_training)
     assert seq_pool1 == seq_pool2, 'seq_pool for inputs 1 is {} whereas seq_pool for inputs 2 is {}'.format(seq_pool1, seq_pool2)
     inputs1 = get_rnn_model(params, inputs1, '_inputs1', is_training, False)
     inputs2 = get_rnn_model(params, inputs2, '_inputs2', is_training, False)
     inputs = tf.concat([inputs1, inputs2], axis = 2)
     inputs = get_rnn_model(params ,inputs, '_inputs', is_training)
-    return seq_pool1, inputs
+    return seq_pool1, padding_size1, inputs
 
 def fuse_early_fork(params, inputs1, inputs2, inputs3, inputs4, is_training):
-    seq_pool1, inputs1 = get_cnn_model(params, inputs1, '_inputs1', is_training)
-    seq_pool2, inputs2 = get_cnn_model(params, inputs2, '_inputs2', is_training)
-    seq_pool3, inputs3 = get_cnn_model(params, inputs3, '_inputs3', is_training)
-    seq_pool4, inputs4 = get_cnn_model(params, inputs4, '_inputs4', is_training)
+    seq_pool1, padding_size1, inputs1 = get_cnn_model(params, inputs1, '_inputs1', is_training)
+    seq_pool2, padding_size2, inputs2 = get_cnn_model(params, inputs2, '_inputs2', is_training)
+    seq_pool3, padding_size3, inputs3 = get_cnn_model(params, inputs3, '_inputs3', is_training)
+    seq_pool4, padding_size4, inputs4 = get_cnn_model(params, inputs4, '_inputs4', is_training)
     assert seq_pool1 == seq_pool2, 'seq_pool for inputs 1 is {} whereas seq_pool for inputs 2 is {}'.format(seq_pool1, seq_pool2)
     assert seq_pool3 == seq_pool4, 'seq_pool for inputs 3 is {} whereas seq_pool for inputs 4 is {}'.format(seq_pool3, seq_pool4)
     assert seq_pool1 == seq_pool3, 'seq_pool for inputs 1 is {} whereas seq_pool for inputs 3 is {}'.format(seq_pool1, seq_pool3)
     inputs = tf.concat([inputs1, inputs2, inputs3, inputs4], axis = 2)
     inputs = get_rnn_model(params ,inputs, '_inputs', is_training)
-    return seq_pool1, inputs
+    return seq_pool1, padding_size1, inputs
 
 def fuse_early_fork_merge_cnn(params, inputs1, inputs2, inputs3, inputs4, is_training):
-    seq_pool1, inputs1 = get_cnn_model(params, inputs1, '_inputs1', is_training)
-    seq_pool2, inputs2 = get_cnn_model(params, inputs2, '_inputs2', is_training)
-    seq_pool3, inputs3 = get_cnn_model(params, inputs3, '_inputs3', is_training)
-    seq_pool4, inputs4 = get_cnn_model(params, inputs4, '_inputs4', is_training)
+    seq_pool1, padding_size1, inputs1 = get_cnn_model(params, inputs1, '_inputs1', is_training)
+    seq_pool2, padding_size2, inputs2 = get_cnn_model(params, inputs2, '_inputs2', is_training)
+    seq_pool3, padding_size3, inputs3 = get_cnn_model(params, inputs3, '_inputs3', is_training)
+    seq_pool4, padding_size4, inputs4 = get_cnn_model(params, inputs4, '_inputs4', is_training)
     assert seq_pool1 == seq_pool2, 'seq_pool for inputs 1 is {} whereas seq_pool for inputs 2 is {}'.format(seq_pool1, seq_pool2)
     assert seq_pool3 == seq_pool4, 'seq_pool for inputs 3 is {} whereas seq_pool for inputs 4 is {}'.format(seq_pool3, seq_pool4)
     assert seq_pool1 == seq_pool3, 'seq_pool for inputs 1 is {} whereas seq_pool for inputs 3 is {}'.format(seq_pool1, seq_pool3)
     inputs = tf.concat([inputs1, inputs2, inputs3, inputs4], axis = 2)
-    seq_pool, inputs = get_cnn_model(params, inputs, '_inputs', is_training)
+    seq_pool, padding_size, inputs = get_cnn_model(params, inputs, '_inputs', is_training, padding_size)
     assert seq_pool1 == seq_pool, 'seq_pool for inputs 1 is {} whereas seq_pool for inputs (merge) is {}'.format(seq_pool1, seq_pool)
     inputs = get_rnn_model(params ,inputs, '_inputs', is_training)
-    return seq_pool1, inputs
+    return seq_pool1, padding_size1, inputs
 
 def fuse_early_fork_merge_rnn(params, inputs1, inputs2, inputs3, inputs4, is_training):
-    seq_pool1, inputs1 = get_cnn_model(params, inputs1, '_inputs1', is_training)
-    seq_pool2, inputs2 = get_cnn_model(params, inputs2, '_inputs2', is_training)
-    seq_pool3, inputs3 = get_cnn_model(params, inputs3, '_inputs3', is_training)
-    seq_pool4, inputs4 = get_cnn_model(params, inputs4, '_inputs4', is_training)
+    seq_pool1, padding_size1, inputs1 = get_cnn_model(params, inputs1, '_inputs1', is_training)
+    seq_pool2, padding_size2, inputs2 = get_cnn_model(params, inputs2, '_inputs2', is_training)
+    seq_pool3, padding_size3, inputs3 = get_cnn_model(params, inputs3, '_inputs3', is_training)
+    seq_pool4, padding_size4, inputs4 = get_cnn_model(params, inputs4, '_inputs4', is_training)
     assert seq_pool1 == seq_pool2, 'seq_pool for inputs 1 is {} whereas seq_pool for inputs 2 is {}'.format(seq_pool1, seq_pool2)
     assert seq_pool3 == seq_pool4, 'seq_pool for inputs 3 is {} whereas seq_pool for inputs 4 is {}'.format(seq_pool3, seq_pool4)
     assert seq_pool1 == seq_pool3, 'seq_pool for inputs 1 is {} whereas seq_pool for inputs 3 is {}'.format(seq_pool1, seq_pool3)
@@ -112,12 +112,12 @@ def fuse_early_fork_merge_rnn(params, inputs1, inputs2, inputs3, inputs4, is_tra
     inputs4 = get_rnn_model(params, inputs4, '_inputs4', is_training, False)
     inputs = tf.concat([inputs1, inputs2, inputs3, inputs4], axis = 2)
     inputs = get_rnn_model(params ,inputs, '_inputs', is_training)
-    return seq_pool1, inputs
+    return seq_pool1, padding_size1, inputs
 
 def fuse_earliest(params, inputs, is_training):
-    seq_pool, inputs = get_cnn_model(params, inputs, '_inputs1', is_training)
+    seq_pool, padding_size, inputs = get_cnn_model(params, inputs, '_inputs1', is_training)
     inputs = get_rnn_model(params ,inputs, '_inputs', is_training)
-    return seq_pool, inputs
+    return seq_pool, padding_size, inputs
 
 ######################################################################################################################
 
@@ -138,9 +138,9 @@ def dnd(params, inputs, is_training):
         raise RuntimeError('{0} is not supported in fusion.py'.format(params.f_strategy))
 
 def dnd1(params, inputs, is_training):
-    seq_pool, inputs_left, inputs_right = dnd(params, inputs, is_training)
+    seq_pool, padding_size, inputs_left, inputs_right = dnd(params, inputs, is_training)
     inputs = inputs_left + inputs_right
-    return seq_pool, inputs
+    return seq_pool, padding_size, inputs
 
 def ag(params, inputs, is_training):
     
@@ -164,15 +164,15 @@ def ag(params, inputs, is_training):
 
 def ag1(params, inputs, is_training):
     if params.f_strategy == 'late':
-        seq_pool, inputs_accel, inputs_gyro = ag(params, inputs, is_training)
-        return seq_pool, inputs_accel + inputs_gyro
+        seq_pool, padding_size, inputs_accel, inputs_gyro = ag(params, inputs, is_training)
+        return seq_pool, padding_size, inputs_accel + inputs_gyro
     else:
         return ag(params, inputs, is_training)
 
 def ag2(params, inputs, is_training):
     if params.f_strategy == 'late':
-        seq_pool, inputs_accel, inputs_gyro = ag(params, inputs, is_training)
-        return seq_pool, inputs_accel + inputs_gyro + inputs_gyro
+        seq_pool, padding_size, inputs_accel, inputs_gyro = ag(params, inputs, is_training)
+        return seq_pool, padding_size, inputs_accel + inputs_gyro + inputs_gyro
     else:
         raise RuntimeError('{0} is not supported in {1} mode of fusion.py'.format(params.f_strategy,params.f_mode))
 
@@ -194,14 +194,14 @@ def agdnd(params, inputs, is_training):
 
 def agdnd1(params, inputs, is_training):
     if params.f_strategy == 'late':
-        seq_pool, inputs_accel_dom, inputs_accel_ndom, inputs_gyro_dom, inputs_gyro_ndom = agdnd(params, inputs, is_training)
-        return seq_pool, inputs_accel_dom + inputs_accel_ndom + inputs_gyro_dom + inputs_gyro_ndom
+        seq_pool, padding_size, inputs_accel_dom, inputs_accel_ndom, inputs_gyro_dom, inputs_gyro_ndom = agdnd(params, inputs, is_training)
+        return seq_pool, padding_size, inputs_accel_dom + inputs_accel_ndom + inputs_gyro_dom + inputs_gyro_ndom
     else:
         return agdnd(params, inputs, is_training)
 
 def ad3and1gd4gnd2(params, inputs, is_training):
     if params.f_strategy == 'late':
-        seq_pool, inputs_accel_dom, inputs_accel_ndom, inputs_gyro_dom, inputs_gyro_ndom = agdnd(params, inputs, is_training)
+        seq_pool, padding_size, inputs_accel_dom, inputs_accel_ndom, inputs_gyro_dom, inputs_gyro_ndom = agdnd(params, inputs, is_training)
         return seq_pool, (inputs_accel_dom*3) + inputs_accel_ndom + (inputs_gyro_dom*4) + (inputs_gyro_ndom*2)
     else:
         raise RuntimeError('{0} is not supported in {1} mode of fusion.py'.format(params.f_strategy,params.f_mode))

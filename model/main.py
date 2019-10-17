@@ -2,6 +2,7 @@ import os
 import itertools
 import numpy as np
 import tensorflow as tf
+import math
 import best_checkpoint_exporter
 import resnet_cnn
 import resnet_cnn_lstm
@@ -26,19 +27,19 @@ tf.app.flags.DEFINE_enum(
     name='mode', default='train_and_evaluate', enum_values=['train_and_evaluate', 'predict_and_export_csv'],
     help='What mode should tensorflow be started in')
 tf.app.flags.DEFINE_enum(
-    name='fusion', default='accel_gyro_dom_ndom', enum_values=['none', 'earliest', 'accel_gyro', 'dom_ndom', 'accel_gyro_dom_ndom'],
+    name='fusion', default='earliest', enum_values=['none', 'earliest', 'accel_gyro', 'dom_ndom', 'accel_gyro_dom_ndom'],
     help='Select the model')
 tf.app.flags.DEFINE_enum(
-    name='f_strategy', default='early_merge_rnn', enum_values=['earliest', 'early', 'early_merge_cnn', 'early_merge_rnn', 'late'],
+    name='f_strategy', default='earliest', enum_values=['earliest', 'early', 'early_merge_cnn', 'early_merge_rnn', 'late'],
     help='Select the fusion strategy')
 tf.app.flags.DEFINE_string(
-    name='f_mode', default='agdnd1',
+    name='f_mode', default='',
     help='Select the mode of the proposed fusion model')
 tf.app.flags.DEFINE_enum(
     name='model', default='cnn_rnn', enum_values=['resnet_cnn', 'resnet_cnn_lstm', 'small_cnn', 'kyritsis', 'cnn_lstm', 'cnn_gru', 'cnn_blstm', 'cnn_rnn'],
     help='Select the model')
 tf.app.flags.DEFINE_string(
-    name='sub_mode', default='d:4;ks:1357|d:1;t:l',
+    name='sub_mode', default='d:4;ks:1357;pad:valid|d:1;t:l',
     help='Select the mode of the proposed cnn_lstm, cnn_gru or cnn_blstm model')
 tf.app.flags.DEFINE_string(
     name='model_dir', default='run',
@@ -48,9 +49,6 @@ tf.app.flags.DEFINE_integer(
 tf.app.flags.DEFINE_integer(
     name='seq_length', default=128,
     help='Number of sequence elements.')
-tf.app.flags.DEFINE_integer(
-    name='final_labels_index', default=-1,
-    help='index of labels used for validation and test.')
 tf.app.flags.DEFINE_integer(
     name='seq_pool', default=1, help='Factor of sequence pooling in the model.')
 tf.app.flags.DEFINE_integer(
@@ -166,6 +164,7 @@ def model_fn(features, labels, mode, params):
 
     # Set features to correct shape
     features = tf.reshape(features, [params.batch_size, params.seq_length, features_num])
+    padding_size = 0
 
     # Model
     if FLAGS.fusion != 'none':
@@ -182,7 +181,7 @@ def model_fn(features, labels, mode, params):
         assert FLAGS.model == 'cnn_rnn', "model is not compatible with modality"
         FLAGS.use_sequence_loss = True
         model = fusion.Model(params)
-        FLAGS.seq_pool, logits = model(features, is_training)
+        FLAGS.seq_pool, padding_size, logits = model(features, is_training)
     elif FLAGS.model == 'resnet_cnn':
         assert not FLAGS.use_sequence_loss, "Cannot use sequence loss with this model"
         model = resnet_cnn.Model(params)
@@ -231,10 +230,18 @@ def model_fn(features, labels, mode, params):
             })
 
     # If necessary, slice last sequence step for labels
-    final_labels = labels[:,FLAGS.final_labels_index] if labels.get_shape().ndims == 2 else labels
+    final_labels = labels
 
     if labels.get_shape().ndims == 2:
-        seq_length = int(FLAGS.seq_length / FLAGS.seq_pool)
+        seq_length = int((FLAGS.seq_length - padding_size) / FLAGS.seq_pool)
+        # If the length of the sequence was reduced due to padding='valid' the labels has also to be trimmed respectively
+        if padding_size > 0:
+            labels = tf.strided_slice(input_=labels,
+                begin=[0, math.ceil(padding_size/2)],
+                end=[FLAGS.batch_size, FLAGS.seq_length-(math.floor(padding_size/2))],
+                strides=[1, 1])
+        # If necessary, slice last sequence step for labels
+        final_labels = labels[:,-1]
         # If seq pooling performed in model, slice the labels as well
         if FLAGS.seq_pool > 1:
             labels = tf.strided_slice(input_=labels,
