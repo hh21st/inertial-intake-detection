@@ -20,6 +20,8 @@ def r(inputs, type, depth, units, num_classes, has_dense):
             raise RuntimeError('type {0} is not defined'.format(type))
     for i in range(depth):
         inputs = get_rnn_layer(type, inputs, units)
+    if depth == 0:
+        inputs = tf.keras.layers.Flatten()(inputs)
     if has_dense:
         inputs = tf.keras.layers.Dense(num_classes)(inputs)
     return inputs

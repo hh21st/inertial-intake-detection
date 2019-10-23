@@ -179,9 +179,13 @@ def model_fn(features, labels, mode, params):
         elif FLAGS.f_strategy == 'late':
             assert FLAGS.fusion == 'accel_gyro' or FLAGS.fusion == 'dom_ndom' or FLAGS.fusion == 'accel_gyro_dom_ndom', "fusion strategy is not compatible with fusion model"
         assert FLAGS.model == 'cnn_rnn', "model is not compatible with modality"
-        FLAGS.use_sequence_loss = True
         model = fusion.Model(params)
         FLAGS.seq_pool, padding_size, logits = model(features, is_training)
+        # to see if the model is sequential
+        sub_mode = params.sub_mode.split('|')[1]
+        sub_mode_dict = dict(item.split(':') for item in sub_mode.split(';'))
+        depth = int(sub_mode_dict['d']) if 'd' in sub_mode_dict else 2
+        FLAGS.use_sequence_loss = False if depth == 0 else True
     elif FLAGS.model == 'resnet_cnn':
         assert not FLAGS.use_sequence_loss, "Cannot use sequence loss with this model"
         model = resnet_cnn.Model(params)
