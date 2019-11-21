@@ -20,9 +20,11 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_integer(
     name='batch_size', default=32, help='Batch size used for training.')
 tf.app.flags.DEFINE_string(
-    name='eval_dir', default=r'C:\H\PhD\ORIBA\Model\FileGen\OREBA\smo_0.125', help='Directory for eval data.')
+    name='eval_dir', default='', help='Directory for eval data.')
 tf.app.flags.DEFINE_string(
-    name='train_dir', default=r'C:\H\PhD\ORIBA\Model\FileGen\OREBA\smo_0.125', help='Directory for training data.')
+    name='train_dir', default='', help='Directory for training data.')
+tf.app.flags.DEFINE_string(
+    name='prob_dir', default='', help='Directory for eval data.')
 tf.app.flags.DEFINE_enum(
     name='mode', default='train_and_evaluate', enum_values=['train_and_evaluate', 'predict_and_export_csv'],
     help='What mode should tensorflow be started in')
@@ -39,7 +41,7 @@ tf.app.flags.DEFINE_enum(
     name='model', default='cnn_rnn', enum_values=['resnet_cnn', 'resnet_cnn_lstm', 'small_cnn', 'kyritsis', 'cnn_lstm', 'cnn_gru', 'cnn_blstm', 'cnn_rnn'],
     help='Select the model')
 tf.app.flags.DEFINE_string(
-    name='sub_mode', default='d:4;ks:1357;pad:valid|d:1;t:l',
+    name='sub_mode', default='d:4;ks:1357;pad:valid|d:2;t:l',
     help='Select the mode of the proposed cnn_lstm, cnn_gru or cnn_blstm model')
 tf.app.flags.DEFINE_string(
     name='model_dir', default='run',
@@ -59,7 +61,7 @@ tf.app.flags.DEFINE_boolean(
     name='use_sequence_loss', default=False,
     help='Use sequence-to-sequence loss')
 tf.app.flags.DEFINE_float(
-    name='decay_rate', default=0.9, help='Decay rate of the learning rate.')
+    name='decay_rate', default=0.93, help='Decay rate of the learning rate.')
 tf.app.flags.DEFINE_enum(
     name='hand', default='both', enum_values=['both', 'dom', 'nondom'],
     help='specified data from which hands are included in the input')
@@ -168,17 +170,18 @@ def model_fn(features, labels, mode, params):
 
     # Model
     if FLAGS.fusion != 'none':
-        if FLAGS.f_strategy == 'earliest':
-            assert FLAGS.fusion == 'earliest', "fusion strategy is not compatible with fusion model"
-        elif FLAGS.f_strategy == 'early':
-            assert FLAGS.fusion == 'accel_gyro' or FLAGS.fusion == 'dom_ndom' or FLAGS.fusion == 'accel_gyro_dom_ndom', "fusion strategy is not compatible with fusion model"
-        elif FLAGS.f_strategy == 'early_merge_cnn':
-            assert FLAGS.fusion == 'accel_gyro' or FLAGS.fusion == 'dom_ndom' or FLAGS.fusion == 'accel_gyro_dom_ndom', "fusion strategy is not compatible with fusion model"
-        elif FLAGS.f_strategy == 'early_merge_rnn':
-            assert FLAGS.fusion == 'accel_gyro' or FLAGS.fusion == 'dom_ndom' or FLAGS.fusion == 'accel_gyro_dom_ndom', "fusion strategy is not compatible with fusion model"
-        elif FLAGS.f_strategy == 'late':
-            assert FLAGS.fusion == 'accel_gyro' or FLAGS.fusion == 'dom_ndom' or FLAGS.fusion == 'accel_gyro_dom_ndom', "fusion strategy is not compatible with fusion model"
-        assert FLAGS.model == 'cnn_rnn', "model is not compatible with modality"
+        if FLAGS.mode == "train_and_evaluate":
+            if FLAGS.f_strategy == 'earliest':
+                assert FLAGS.fusion == 'earliest', "fusion strategy is not compatible with fusion model"
+            elif FLAGS.f_strategy == 'early':
+                assert FLAGS.fusion == 'accel_gyro' or FLAGS.fusion == 'dom_ndom' or FLAGS.fusion == 'accel_gyro_dom_ndom', "fusion strategy is not compatible with fusion model"
+            elif FLAGS.f_strategy == 'early_merge_cnn':
+                assert FLAGS.fusion == 'accel_gyro' or FLAGS.fusion == 'dom_ndom' or FLAGS.fusion == 'accel_gyro_dom_ndom', "fusion strategy is not compatible with fusion model"
+            elif FLAGS.f_strategy == 'early_merge_rnn':
+                assert FLAGS.fusion == 'accel_gyro' or FLAGS.fusion == 'dom_ndom' or FLAGS.fusion == 'accel_gyro_dom_ndom', "fusion strategy is not compatible with fusion model"
+            elif FLAGS.f_strategy == 'late':
+                assert FLAGS.fusion == 'accel_gyro' or FLAGS.fusion == 'dom_ndom' or FLAGS.fusion == 'accel_gyro_dom_ndom', "fusion strategy is not compatible with fusion model"
+            assert FLAGS.model == 'cnn_rnn', "model is not compatible with modality"
         model = fusion.Model(params)
         FLAGS.seq_pool, padding_size, logits = model(features, is_training)
         # to see if the model is sequential
@@ -187,18 +190,22 @@ def model_fn(features, labels, mode, params):
         depth = int(sub_mode_dict['d']) if 'd' in sub_mode_dict else 2
         FLAGS.use_sequence_loss = False if depth == 0 else True
     elif FLAGS.model == 'resnet_cnn':
-        assert not FLAGS.use_sequence_loss, "Cannot use sequence loss with this model"
+        if FLAGS.mode == "train_and_evaluate":
+            assert not FLAGS.use_sequence_loss, "Cannot use sequence loss with this model"
         model = resnet_cnn.Model(params)
     elif FLAGS.model == 'resnet_cnn_lstm':
-        assert FLAGS.use_sequence_loss, "Need sequence loss for this model"
-        assert FLAGS.seq_pool == 16, "seq_pool should be 16"
+        if FLAGS.mode == "train_and_evaluate":
+            assert FLAGS.use_sequence_loss, "Need sequence loss for this model"
+            assert FLAGS.seq_pool == 16, "seq_pool should be 16"
         model = resnet_cnn_lstm.Model(params)
     elif FLAGS.model == 'small_cnn':
-        assert not FLAGS.use_sequence_loss, "Cannot use sequence loss with this model"
+        if FLAGS.mode == "train_and_evaluate":
+            assert not FLAGS.use_sequence_loss, "Cannot use sequence loss with this model"
         model = small_cnn.Model(params)
     elif FLAGS.model == 'kyritsis':
-        assert FLAGS.use_sequence_loss, "Need sequence loss for this model"
-        assert FLAGS.seq_pool == 4, "seq_pool should be 4"
+        if FLAGS.mode == "train_and_evaluate":
+            assert FLAGS.use_sequence_loss, "Need sequence loss for this model"
+            assert FLAGS.seq_pool == 4, "seq_pool should be 4"
         model = kyritsis.Model(params)
     elif FLAGS.model == 'cnn_lstm':
         FLAGS.use_sequence_loss = True
@@ -498,7 +505,9 @@ def predict_and_export_csv(estimator, eval_input_fn, eval_dir, seq_skip):
     num = len(pred_probs_1)
     # Get labels and ids
     filenames = gfile.Glob(os.path.join(eval_dir, "*.csv"))
-    select_cols = [0, 15]; record_defaults = [tf.int32, tf.string]
+    frame_id_index = 1
+    label1_index = 16
+    select_cols = [frame_id_index, label1_index]; record_defaults = [tf.int32, tf.string]
     mapping_strings = tf.constant(["Idle", "Intake"])
     table = tf.contrib.lookup.index_table_from_tensor(
         mapping=mapping_strings)
@@ -523,9 +532,13 @@ def predict_and_export_csv(estimator, eval_input_fn, eval_dir, seq_skip):
     seq_no = seq_no[seq_skip:]; labels = labels[seq_skip:]
     assert (len(labels)==num), "Lengths must match"
     name = os.path.normpath(eval_dir).split(os.sep)[-1]
-    tf.logging.info("Writing {0} examples to {1}.csv...".format(num, name))
-    pred_array = np.column_stack((seq_no, labels, pred_probs_1))
-    np.savetxt("{0}.csv".format(name), pred_array, delimiter=",", fmt=['%i','%i','%f'])
+    fullname = os.path.join(FLAGS.prob_dir,name)
+    if os.path.isfile(fullname):
+        tf.logging.info("{0} already exists! Skipping...".format(fullname))
+    else:
+        tf.logging.info("Writing {0} examples to {1}...".format(num, fullname))
+        pred_array = np.column_stack((seq_no, labels, pred_probs_1))
+        np.savetxt("{0}.csv".format(fullname), pred_array, delimiter=",", fmt=['%i','%i','%f'])
 
 
 # Run

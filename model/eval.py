@@ -6,6 +6,29 @@ import csv
 import glob
 import numpy as np
 import os
+import tensorflow as tf
+import utils
+
+FLAGS = tf.app.flags.FLAGS
+if 'prob_dir' not in FLAGS.__flags.keys():
+    tf.app.flags.DEFINE_string(
+        name='prob_dir', default='', help='Directory for probability data.')
+tf.app.flags.DEFINE_integer(
+    name='min_dist', default=128, help='Minimum frames between detections.')
+tf.app.flags.DEFINE_float(
+    name='threshold', default=0.9, help='Detection threshold probability')
+tf.app.flags.DEFINE_string(
+    name='eval_mode', default='estimate', help='Evaluation or estimation and evaluation')
+tf.app.flags.DEFINE_float(
+    name='min_threshold', default=0.5, help='Minimum detection threshold probability')
+tf.app.flags.DEFINE_float(
+    name='max_threshold', default=1, help='Maximum detection threshold probability')
+tf.app.flags.DEFINE_float(
+    name='inc_threshold', default=0.001, help='Increment for detection threshold search')
+tf.app.flags.DEFINE_integer(
+    name='col_label', default=1, help='Col number of label in csv')
+tf.app.flags.DEFINE_integer(
+    name='col_prob', default=2, help='Col number of probability in csv')
 
 CSV_SUFFIX = '*.csv'
 
@@ -102,62 +125,68 @@ def eval_stage_2(dets, labels):
 
 def main(args=None):
     # Import the probs and labels from csv
-    probs, labels = import_probs_and_labels(args.prob_dir, args.col_label, args.col_prob)
+    probs, labels = import_probs_and_labels(FLAGS.prob_dir, FLAGS.col_label, FLAGS.col_prob)
     # Calculate UAR for Stage I
     uar = eval_stage_1(probs, labels)
-    print('UAR: {}'.format(uar))
+    parent_dir = utils.get_parent_dir(FLAGS.prob_dir)
+    parent_dir_name = utils.get_current_dir_name(parent_dir)
+    result_file_name = os.path.join(parent_dir, parent_dir_name + '_f1score.txt')
+    if os.path.isfile(result_file_name):
+        return -1,-1,-1,-1,-1,-1,-1,-1,'-1'
+    result_file = open(result_file_name, 'w')
+    result_file.write('UAR: {}'.format(uar))
     # Perform grid search
-    if args.mode == 'estimate':
+    if FLAGS.eval_mode == 'estimate':
         # All evaluated threshold values
-        threshold_vals = np.arange(args.min_threshold, args.max_threshold, args.inc_threshold)
+        threshold_vals = np.arange(FLAGS.min_threshold, FLAGS.max_threshold, FLAGS.inc_threshold)
         f1_results = []
         for threshold in threshold_vals:
             # Perform max search
-            dets = max_search(probs, threshold, args.min_dist)
+            dets = max_search(probs, threshold, FLAGS.min_dist)
             # Calculate Stage II
             _, _, _, _, _, _, f1 = eval_stage_2(dets, labels)
             f1_results.append(f1)
         # Find best threshold
         final_threshold = threshold_vals[np.argmax(f1_results)]
-        final_dets = max_search(probs, final_threshold, args.min_dist)
+        final_dets = max_search(probs, final_threshold, FLAGS.min_dist)
         tp, fn, fp_1, fp_2, prec, rec, f1 = eval_stage_2(final_dets, labels)
-        print('-----')
-        print('Best threshold: {}'.format(final_threshold))
-        print('-----')
-        print('F1: {}'.format(f1))
-        print('Precision: {}'.format(prec))
-        print('Recall: {}'.format(rec))
-        print('-----')
-        print('TP: {}'.format(tp))
-        print('FN: {}'.format(fn))
-        print('FP_1: {}'.format(fp_1))
-        print('FP_2: {}'.format(fp_2))
+        result_file.write('\n')
+        result_file.write('Best threshold: {}'.format(final_threshold))
+        result_file.write('\n')
+        result_file.write('F1: {}'.format(f1))
+        result_file.write('\n')
+        result_file.write('Precision: {}'.format(prec))
+        result_file.write('\n')
+        result_file.write('Recall: {}'.format(rec))
+        result_file.write('\n')
+        result_file.write('TP: {}'.format(tp))
+        result_file.write('\n')
+        result_file.write('FN: {}'.format(fn))
+        result_file.write('\n')
+        result_file.write('FP_1: {}'.format(fp_1))
+        result_file.write('\n')
+        result_file.write('FP_2: {}'.format(fp_2))
     else:
         # Perform max search
-        dets = max_search(probs, args.threshold, args.min_dist)
+        dets = max_search(probs, FLAGS.threshold, FLAGS.min_dist)
         # Calculate Stage II
         tp, fn, fp_1, fp_2, prec, rec, f1 = eval_stage_2(dets, labels)
-        print('-----')
-        print('F1: {}'.format(f1))
-        print('Precision: {}'.format(prec))
-        print('Recall: {}'.format(rec))
-        print('-----')
-        print('TP: {}'.format(tp))
-        print('FN: {}'.format(fn))
-        print('FP_1: {}'.format(fp_1))
-        print('FP_2: {}'.format(fp_2))
-
+        result_file.write('\n')
+        result_file.write('F1: {}'.format(f1))
+        result_file.write('\n')
+        result_file.write('Precision: {}'.format(prec))
+        result_file.write('\n')
+        result_file.write('Recall: {}'.format(rec))
+        result_file.write('\n')
+        result_file.write('TP: {}'.format(tp))
+        result_file.write('\n')
+        result_file.write('FN: {}'.format(fn))
+        result_file.write('\n')
+        result_file.write('FP_1: {}'.format(fp_1))
+        result_file.write('\n')
+        result_file.write('FP_2: {}'.format(fp_2))
+    result_file.close()
+    return uar, tp, fn, fp_1, fp_2, prec, rec, f1, final_threshold
 # Run
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Evaluate model Stage II')
-    parser.add_argument('--prob_dir', type=str, default='eval', nargs='?', help='Directory with eval data.')
-    parser.add_argument('--min_dist', type=int, default=128, nargs='?', help='Minimum frames between detections.')
-    parser.add_argument('--threshold', type=float, default=0.9, nargs='?', help='Detection threshold probability')
-    parser.add_argument('--mode', type=str, default='evaluate', nargs='?', help='Evaluation or estimation and evaluation')
-    parser.add_argument('--min_threshold', type=float, default=0.5, nargs='?', help='Minimum detection threshold probability')
-    parser.add_argument('--max_threshold', type=float, default=1, nargs='?', help='Maximum detection threshold probability')
-    parser.add_argument('--inc_threshold', type=float, default=0.001, nargs='?', help='Increment for detection threshold search')
-    parser.add_argument('--col_label', type=int, default=1, nargs='?', help='Col number of label in csv')
-    parser.add_argument('--col_prob', type=int, default=2, nargs='?', help='Col number of probability in csv')
-    args = parser.parse_args()
-    main(args)
+    tf.app.run(main=main)
