@@ -17,8 +17,9 @@ tf.app.flags.DEFINE_integer(
     name='min_dist', default=128, help='Minimum frames between detections.')
 tf.app.flags.DEFINE_float(
     name='threshold', default=0.9, help='Detection threshold probability')
-tf.app.flags.DEFINE_string(
-    name='eval_mode', default='estimate', help='Evaluation or estimation and evaluation')
+tf.app.flags.DEFINE_enum(
+    name='eval_mode', default='estimate', enum_values=['estimate', 'predict'], 
+    help='estimation using validation set or predicting using test set')
 tf.app.flags.DEFINE_float(
     name='min_threshold', default=0.5, help='Minimum detection threshold probability')
 tf.app.flags.DEFINE_float(
@@ -130,7 +131,8 @@ def main(args=None):
     uar = eval_stage_1(probs, labels)
     parent_dir = utils.get_parent_dir(FLAGS.prob_dir)
     parent_dir_name = utils.get_current_dir_name(parent_dir)
-    result_file_name = os.path.join(parent_dir, parent_dir_name + '_f1score.txt')
+    result_file_name_suffix = '_f1score.txt' if FLAGS.eval_mode == 'estimate' else '_f1score_test.txt' 
+    result_file_name = os.path.join(parent_dir, parent_dir_name + result_file_name_suffix)
     if os.path.isfile(result_file_name):
         return -1,-1,-1,-1,-1,-1,-1,-1,'-1'
     result_file = open(result_file_name, 'w')
@@ -167,8 +169,15 @@ def main(args=None):
         result_file.write('\n')
         result_file.write('FP_2: {}'.format(fp_2))
     else:
+        best_threshold = FLAGS.threshold
+        result_file_name_val = os.path.join(parent_dir, parent_dir_name + '_f1score.txt')
+        with open(result_file_name) as result_file_val:
+            for i, line in enumerate(result_file_val):
+                if line.startswith('Best'):
+                    best_threshold = float(line.split(':')[1].strip())
+                    break
         # Perform max search
-        dets = max_search(probs, FLAGS.threshold, FLAGS.min_dist)
+        dets = max_search(probs, best_threshold, FLAGS.min_dist)
         # Calculate Stage II
         tp, fn, fp_1, fp_2, prec, rec, f1 = eval_stage_2(dets, labels)
         result_file.write('\n')
@@ -186,7 +195,7 @@ def main(args=None):
         result_file.write('\n')
         result_file.write('FP_2: {}'.format(fp_2))
     result_file.close()
-    return uar, tp, fn, fp_1, fp_2, prec, rec, f1, final_threshold
+    return uar, tp, fn, fp_1, fp_2, prec, rec, f1, best_threshold
 # Run
 if __name__ == '__main__':
     tf.app.run(main=main)

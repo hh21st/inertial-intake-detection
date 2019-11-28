@@ -100,8 +100,9 @@ def calc_f1(eval_dir, model_dir, model, sub_mode, fusion, f_strategy, f_mode, f1
     eval_dir_sub=eval_dir+'_sub'
     eval_sub_dirs = utils.get_immediate_subdirs(eval_dir_sub)
     index_dirs = utils.get_immediate_subdirs(model_dir_bests)
+    prob_suffix = 'prob_test' if utils.get_current_dir_name(eval_dir)=='test' else 'prob' 
     for index_dir in index_dirs:
-        FLAGS.prob_dir=os.path.join(index_dir,'prob')
+        FLAGS.prob_dir=os.path.join(index_dir, prob_suffix)
         FLAGS.model_dir = index_dir
         try:
             if not os.path.exists(FLAGS.prob_dir):
@@ -113,7 +114,6 @@ def calc_f1(eval_dir, model_dir, model, sub_mode, fusion, f_strategy, f_mode, f1
                 main.run_experiment()
                 logging.info("probabilities file for validation folder {} was added to folder {}".format(FLAGS.eval_dir, FLAGS.prob_dir))
         
-            FLAGS.eval_mode = 'estimate'
             FLAGS.min_dist = 128
             FLAGS.col_label = 1
             FLAGS.col_prob = 2
@@ -173,8 +173,8 @@ def calc_for_sh_file(sh_file_fullname, eval_dir, f1score_file_fullname):
 
 def calc(root_dir, eval_dir):
     dirs_info = [x for x in os.walk(root_dir)]
-    #sh_files = open('f1.txt','w')
-    f1score_file_fullname = os.path.join(root_dir,'f1scores.csv')
+    f1score_file_name = 'f1scores.csv' if FLAGS.eval_mode == 'estimate' else 'f1scores_test.csv' 
+    f1score_file_fullname = os.path.join(root_dir,f1score_file_name)
     write_f1score_header(f1score_file_fullname)
     for dir_info in dirs_info:
         dir=dir_info[0]
@@ -197,6 +197,13 @@ if __name__ == '__main__':
         #FLAGS.eval_dir = r'\\10.2.224.9\c3140147\input\OREBA\64_std_uni\smo_0\eval'
         #FLAGS.eval_dir = r'/home/c3140147/input/OREBA/64_std_uni/smo_0/eval'
 
-    calc(FLAGS.root_dir,FLAGS.eval_dir)
+    if utils.is_file(FLAGS.root_dir):
+        assert utils.get_file_extension(FLAGS.root_dir) == '.sh', 'root_dir is a file therefore its extension has to be .sh, file name={0}'.format(FLAGS.root_dir)
+        f1score_file_name_suffix = '_f1score.csv' if FLAGS.eval_mode == 'estimate' else '_f1score_test.csv' 
+        f1score_file_fullname = utils.get_file_name_without_extension(FLAGS.root_dir)+ f1score_file_name_suffix
+        calc_for_sh_file(FLAGS.root_dir, FLAGS.eval_dir, f1score_file_fullname)
+    else:
+        calc(FLAGS.root_dir,FLAGS.eval_dir)
+
     #f1score_file_fullname = os.path.join(FLAGS.root_dir,'f1scores.csv')
     #calc_for_sh_file(r'\\10.2.224.9\c3140147\run\20191002\20191017\est.d4ks1357d2tl.valid.cl.93.64_std_uni.smo_0.oldInput.sh',FLAGS.eval_dir, f1score_file_fullname)
