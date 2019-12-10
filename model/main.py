@@ -61,6 +61,8 @@ tf.app.flags.DEFINE_boolean(
     name='use_sequence_loss', default=False,
     help='Use sequence-to-sequence loss')
 tf.app.flags.DEFINE_float(
+    name='base_learning_rate', default=3e-4, help='Base learning rate')
+tf.app.flags.DEFINE_float(
     name='decay_rate', default=0.93, help='Decay rate of the learning rate.')
 tf.app.flags.DEFINE_enum(
     name='hand', default='both', enum_values=['both', 'dom', 'nondom'],
@@ -78,7 +80,7 @@ def run_experiment(arg=None):
 
     # Model parameters
     params = tf.contrib.training.HParams(
-        base_learning_rate=3e-4,
+        base_learning_rate=FLAGS.base_learning_rate,
         lowest_learning_rate = 2e-7,
         batch_size=FLAGS.batch_size,
         decay_rate=FLAGS.decay_rate,

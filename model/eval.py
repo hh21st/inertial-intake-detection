@@ -170,8 +170,8 @@ def main(args=None):
         result_file.write('FP_2: {}'.format(fp_2))
     else:
         best_threshold = FLAGS.threshold
-        result_file_name_val = os.path.join(parent_dir, parent_dir_name + '_f1score.txt')
-        with open(result_file_name) as result_file_val:
+        result_file_name_validation = os.path.join(parent_dir, parent_dir_name + '_f1score.txt')
+        with open(result_file_name_validation) as result_file_val:
             for i, line in enumerate(result_file_val):
                 if line.startswith('Best'):
                     best_threshold = float(line.split(':')[1].strip())

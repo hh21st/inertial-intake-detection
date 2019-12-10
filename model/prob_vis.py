@@ -68,9 +68,11 @@ if __name__ == '__main__':
     #prob_dir = r'\\10.2.224.9\c3140147\run\20190906\20190926\cl3_1_nf_92.64_std_uni.smo_0.125\best_checkpoints\95000\prob'
     #threshlod = 0.987
 
-    prob_dir = r'\\10.2.224.9\c3140147\run\20191002\20191017\est.kyritsis.93.64_std_uni.smo_0.oldInput\best_checkpoints\330000\prob'
-    threshlod = 0.987
+    #prob_dir = r'\\10.2.224.9\c3140147\run\20191002\20191017\est.kyritsis.93.64_std_uni.smo_0.oldInput\best_checkpoints\330000\prob'
+    #threshlod = 0.987
 
+    prob_dir = r'\\10.2.224.9\c3140147\run\20191002\20191017\est.d4ks1357d2tl.valid.cl.b128.93.64_std_uni.smo_0.oldInput_\best_checkpoints\185000\prob_test'
+    threshlod = 0.987
 
     output_dir = prob_dir+'_figure' 
         
