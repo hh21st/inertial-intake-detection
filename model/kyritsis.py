@@ -15,7 +15,7 @@ class Model(object):
 
             inputs = tf.keras.layers.Conv1D(
                 filters=64,
-                kernel_size=10,
+                kernel_size=8,
                 padding='same',
                 activation=tf.nn.relu)(inputs)
             inputs = tf.keras.layers.MaxPool1D(

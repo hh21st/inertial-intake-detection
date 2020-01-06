@@ -12,6 +12,8 @@ logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s: %(message)s',
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
     name='root_dir', default='', help='root directory to find all .sh files')
+tf.app.flags.DEFINE_boolean(
+    name='overwrite', default=True, help='overwrite existing prob files and calculate the metrics if true')
 
 def get_indexes_from_model_dir(model_dir):
     indexes = []
@@ -98,9 +100,10 @@ def calc_f1(eval_dir, model_dir, model, sub_mode, fusion, f_strategy, f_mode, f1
     prepare_index_checkpoint(model_dir_bests)
     #
     eval_dir_sub=eval_dir+'_sub'
+    eval_dir_sub = eval_dir+'_sub' if FLAGS.eval_mode == 'estimate' else eval_dir.replace('eval','test',1)+'_sub' 
     eval_sub_dirs = utils.get_immediate_subdirs(eval_dir_sub)
     index_dirs = utils.get_immediate_subdirs(model_dir_bests)
-    prob_suffix = 'prob_test' if utils.get_current_dir_name(eval_dir)=='test' else 'prob' 
+    prob_suffix = 'prob' if FLAGS.eval_mode == 'estimate' else 'prob_test' 
     for index_dir in index_dirs:
         FLAGS.prob_dir=os.path.join(index_dir, prob_suffix)
         FLAGS.model_dir = index_dir
@@ -108,7 +111,7 @@ def calc_f1(eval_dir, model_dir, model, sub_mode, fusion, f_strategy, f_mode, f1
             if not os.path.exists(FLAGS.prob_dir):
                 os.mkdir(FLAGS.prob_dir)
             for eval_sub_dir in eval_sub_dirs:
-                if os.path.isfile(os.path.join(FLAGS.prob_dir,utils.get_current_dir_name(eval_sub_dir)+'.csv')):
+                if not FLAGS.overwrite and os.path.isfile(os.path.join(FLAGS.prob_dir,utils.get_current_dir_name(eval_sub_dir)+'.csv')):
                     continue
                 FLAGS.eval_dir=eval_sub_dir
                 main.run_experiment()

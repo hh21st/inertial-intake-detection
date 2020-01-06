@@ -133,7 +133,7 @@ def main(args=None):
     parent_dir_name = utils.get_current_dir_name(parent_dir)
     result_file_name_suffix = '_f1score.txt' if FLAGS.eval_mode == 'estimate' else '_f1score_test.txt' 
     result_file_name = os.path.join(parent_dir, parent_dir_name + result_file_name_suffix)
-    if os.path.isfile(result_file_name):
+    if not FLAGS.overwrite and os.path.isfile(result_file_name):
         return -1,-1,-1,-1,-1,-1,-1,-1,'-1'
     result_file = open(result_file_name, 'w')
     result_file.write('UAR: {}'.format(uar))
@@ -149,11 +149,11 @@ def main(args=None):
             _, _, _, _, _, _, f1 = eval_stage_2(dets, labels)
             f1_results.append(f1)
         # Find best threshold
-        final_threshold = threshold_vals[np.argmax(f1_results)]
-        final_dets = max_search(probs, final_threshold, FLAGS.min_dist)
+        best_threshold = threshold_vals[np.argmax(f1_results)]
+        final_dets = max_search(probs, best_threshold, FLAGS.min_dist)
         tp, fn, fp_1, fp_2, prec, rec, f1 = eval_stage_2(final_dets, labels)
         result_file.write('\n')
-        result_file.write('Best threshold: {}'.format(final_threshold))
+        result_file.write('Best threshold: {}'.format(best_threshold))
         result_file.write('\n')
         result_file.write('F1: {}'.format(f1))
         result_file.write('\n')

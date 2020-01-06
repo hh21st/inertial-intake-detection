@@ -20,9 +20,9 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_integer(
     name='batch_size', default=32, help='Batch size used for training.')
 tf.app.flags.DEFINE_string(
-    name='eval_dir', default='', help='Directory for eval data.')
+    name='eval_dir', default='C:\H\PhD\ORIBA\Model\FileGen\OREBA\smo_0', help='Directory for eval data.')
 tf.app.flags.DEFINE_string(
-    name='train_dir', default='', help='Directory for training data.')
+    name='train_dir', default='C:\H\PhD\ORIBA\Model\FileGen\OREBA\smo_0', help='Directory for training data.')
 tf.app.flags.DEFINE_string(
     name='prob_dir', default='', help='Directory for eval data.')
 tf.app.flags.DEFINE_enum(
@@ -70,6 +70,9 @@ tf.app.flags.DEFINE_enum(
 tf.app.flags.DEFINE_enum(
     name='modality', default='both', enum_values=['both', 'accel', 'gyro'],
     help='specified data from what modalities are included in the input')
+tf.app.flags.DEFINE_integer(
+    name='padding_size', default=-1,
+    help='Padding size (for internal usage, no setting from input).')
 
 def run_experiment(arg=None):
     """Run the experiment."""
@@ -95,7 +98,7 @@ def run_experiment(arg=None):
         resnet_first_pool_stride=2,
         resnet_kernel_size=4,
         resnet_num_filters=64,
-        small_kernel_size=10,
+        small_kernel_size=8,
         small_num_filters=[64, 64, 128, 128, 256, 256, 512],
         fusion=FLAGS.fusion,
         f_mode=FLAGS.f_mode,
@@ -150,7 +153,7 @@ def run_experiment(arg=None):
         tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
     elif FLAGS.mode == "predict_and_export_csv":
         seq_skip = FLAGS.seq_length - 1
-        predict_and_export_csv(estimator, eval_input_fn, FLAGS.eval_dir, seq_skip)
+        predict_and_export_csv(estimator, eval_input_fn, FLAGS.eval_dir, seq_skip, params)
 
 
 def model_fn(features, labels, mode, params):
@@ -168,7 +171,7 @@ def model_fn(features, labels, mode, params):
 
     # Set features to correct shape
     features = tf.reshape(features, [params.batch_size, params.seq_length, features_num])
-    padding_size = 0
+    FLAGS.padding_size = 0
 
     # Model
     if FLAGS.fusion != 'none':
@@ -185,7 +188,7 @@ def model_fn(features, labels, mode, params):
                 assert FLAGS.fusion == 'accel_gyro' or FLAGS.fusion == 'dom_ndom' or FLAGS.fusion == 'accel_gyro_dom_ndom', "fusion strategy is not compatible with fusion model"
             assert FLAGS.model == 'cnn_rnn', "model is not compatible with modality"
         model = fusion.Model(params)
-        FLAGS.seq_pool, padding_size, logits = model(features, is_training)
+        FLAGS.seq_pool, FLAGS.padding_size, logits = model(features, is_training)
         # to see if the model is sequential
         sub_mode = params.sub_mode.split('|')[1]
         sub_mode_dict = dict(item.split(':') for item in sub_mode.split(';'))
@@ -246,12 +249,12 @@ def model_fn(features, labels, mode, params):
     final_labels = labels
 
     if labels.get_shape().ndims == 2:
-        seq_length = int((FLAGS.seq_length - padding_size) / FLAGS.seq_pool)
+        seq_length = int((FLAGS.seq_length - FLAGS.padding_size) / FLAGS.seq_pool)
         # If the length of the sequence was reduced due to padding='valid' the labels has also to be trimmed respectively
-        if padding_size > 0:
+        if FLAGS.padding_size > 0:
             labels = tf.strided_slice(input_=labels,
-                begin=[0, math.ceil(padding_size/2)],
-                end=[FLAGS.batch_size, FLAGS.seq_length-(math.floor(padding_size/2))],
+                begin=[0, math.ceil(FLAGS.padding_size/2)],
+                end=[FLAGS.batch_size, FLAGS.seq_length-(math.floor(FLAGS.padding_size/2))],
                 strides=[1, 1])
         # If necessary, slice last sequence step for labels
         final_labels = labels[:,-1]
@@ -498,7 +501,7 @@ def _get_transformation_parser(is_training):
     return transformation_parser
 
 
-def predict_and_export_csv(estimator, eval_input_fn, eval_dir, seq_skip):
+def predict_and_export_csv(estimator, eval_input_fn, eval_dir, seq_skip, params):
     tf.logging.info("Working on {0}".format(eval_dir))
     tf.logging.info("Starting prediction...")
     predictions = estimator.predict(input_fn=eval_input_fn)
@@ -531,7 +534,11 @@ def predict_and_export_csv(estimator, eval_input_fn, eval_dir, seq_skip):
         val = sess.run(elem)
         seq_no.append(val[0])
         labels.append(val[1])
-    seq_no = seq_no[seq_skip:]; labels = labels[seq_skip:]
+    tf.logging.info("predict_and_export_csv - FLAGS.padding_size = {0}".format(str(FLAGS.padding_size)))
+    if FLAGS.padding_size > 0:
+        seq_no = seq_no[seq_skip:]; labels = labels[seq_skip-math.ceil(FLAGS.padding_size/2):len(labels)-(math.floor(FLAGS.padding_size/2))]
+    else:
+        seq_no = seq_no[seq_skip:]; labels = labels[seq_skip:]
     assert (len(labels)==num), "Lengths must match"
     name = os.path.normpath(eval_dir).split(os.sep)[-1]
     fullname = os.path.join(FLAGS.prob_dir,name)
