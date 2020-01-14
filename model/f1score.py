@@ -101,6 +101,7 @@ def calc_f1(eval_dir, model_dir, model, sub_mode, fusion, f_strategy, f_mode, f1
     #
     eval_dir_sub=eval_dir+'_sub'
     eval_dir_sub = eval_dir+'_sub' if FLAGS.eval_mode == 'estimate' else eval_dir.replace('eval','test',1)+'_sub' 
+    logging.info("eval_dir_sub: {}".format(eval_dir_sub))
     eval_sub_dirs = utils.get_immediate_subdirs(eval_dir_sub)
     index_dirs = utils.get_immediate_subdirs(model_dir_bests)
     prob_suffix = 'prob' if FLAGS.eval_mode == 'estimate' else 'prob_test' 
