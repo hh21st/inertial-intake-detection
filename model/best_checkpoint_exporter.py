@@ -34,7 +34,7 @@ class BestCheckpointExporter(tf.estimator.Exporter):
 
     def __init__(self,
                  name="best_checkpoints",
-                 checkpoints_to_keep=5,
+                 checkpoints_to_keep=10,
                  score_metric='Loss/total_loss',
                  compare_fn=lambda x,y: x.score < y.score,
                  sort_key_fn=lambda x: x.score,
