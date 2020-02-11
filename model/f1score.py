@@ -14,6 +14,22 @@ tf.app.flags.DEFINE_string(
     name='root_dir', default='', help='root directory to find all .sh files')
 tf.app.flags.DEFINE_boolean(
     name='overwrite', default=True, help='overwrite existing prob files and calculate the metrics if true')
+tf.app.flags.DEFINE_boolean(
+    name='is_initialized', default=False, help='true if the app been initialized (for internal use)')
+tf.app.flags.DEFINE_integer(
+    name='original_batch_size', default=32, help='Batch size used for training. (for internal use)')
+tf.app.flags.DEFINE_integer(
+    name='original_seq_length', default=128, help='Number of sequence elements. (for internal use)')
+tf.app.flags.DEFINE_float(
+    name='original_base_learning_rate', default=3e-4, help='Base learning rate (for internal use)')
+tf.app.flags.DEFINE_float(
+    name='original_decay_rate', default=0.93, help='Decay rate of the learning rate. (for internal use)')
+tf.app.flags.DEFINE_enum(
+    name='original_hand', default='both', enum_values=['both', 'dom', 'nondom'],
+    help='specified data from which hands are included in the input (for internal use)')
+tf.app.flags.DEFINE_enum(
+    name='original_modality', default='both', enum_values=['both', 'accel', 'gyro'],
+    help='specified data from what modalities are included in the input (for internal use)')
 
 def get_indexes_from_model_dir(model_dir):
     indexes = []
@@ -86,13 +102,19 @@ def write_f1score_line(f1score_file_fullname,model_desciption, index, f1, uar, t
     f1score_file.close()
     logging.info("values for model {} - index {} was added to the file".format(model_desciption, str(index)))
 
-def calc_f1(eval_dir, model_dir, model, sub_mode, fusion, f_strategy, f_mode, f1score_file_fullname):
+def calc_f1(batch_size, eval_dir, model_dir, model, sub_mode, fusion, f_strategy, f_mode, f1score_file_fullname, seq_length, base_learning_rate, decay_rate, hand, modality):
+    FLAGS.batch_size=batch_size
     FLAGS.model=model 
     FLAGS.sub_mode=sub_mode
     #FLAGS.decay_rate=.93 
     FLAGS.fusion=fusion
     FLAGS.f_strategy=f_strategy
     FLAGS.f_mode=f_mode
+    FLAGS.seq_length = seq_length
+    FLAGS.base_learning_rate = base_learning_rate
+    FLAGS.decay_rate = decay_rate
+    FLAGS.hand = hand
+    FLAGS.modality = modality
     #
     FLAGS.mode ='predict_and_export_csv'
     model_desciption = utils.get_current_dir_name(model_dir)
@@ -130,10 +152,34 @@ def calc_f1(eval_dir, model_dir, model, sub_mode, fusion, f_strategy, f_mode, f1
 
 def read_sh_file(sh_file_fullname):
     def read_python_line(words):
-        eval_dir, model_dir, model, sub_mode, fusion, f_strategy, f_mode = '','','','','','',''
+        if not FLAGS.is_initialized:
+            FLAGS.original_batch_size = FLAGS.batch_size
+            FLAGS.original_seq_length = FLAGS.seq_length
+            FLAGS.original_base_learning_rate = FLAGS.base_learning_rate
+            FLAGS.original_decay_rate = FLAGS.decay_rate
+            FLAGS.original_hand = FLAGS.hand
+            FLAGS.original_modality = FLAGS.modality
+            FLAGS.is_initialized = True
+        
+        eval_dir=''
+        model_dir = ''
+        model = ''
+        sub_mode = ''
+        fusion = ''
+        f_strategy = ''
+        f_mode = ''
+        batch_size = FLAGS.original_batch_size
+        seq_length = FLAGS.original_seq_length
+        base_learning_rate = FLAGS.original_base_learning_rate
+        decay_rate = FLAGS.original_decay_rate
+        hand = FLAGS.original_hand
+        modality = FLAGS.original_modality
+
         for word in words:
             if word.startswith('--model_dir'):
                 model_dir = word.split('=')[1]
+            elif word.startswith('--batch_size'):
+                batch_size = int(word.split('=')[1])
             elif word.startswith('--model'):
                 model = word.split('=')[1]
             elif word.startswith('--sub_mode'):
@@ -146,9 +192,19 @@ def read_sh_file(sh_file_fullname):
                 f_mode = word.split('=')[1]
             elif word.startswith('--eval_dir'):
                 eval_dir = word.split('=')[1]
+            elif word.startswith('--seq_length'):
+                seq_length = int(word.split('=')[1])
+            elif word.startswith('--base_learning_rate'):
+                base_learning_rate = float(word.split('=')[1])
+            elif word.startswith('--decay_rate'):
+                decay_rate = float(word.split('=')[1])
+            elif word.startswith('--hand'):
+                hand = word.split('=')[1]
+            elif word.startswith('--modality'):
+                modality = word.split('=')[1]
         if fusion == None or fusion.strip() == '' :
             fusion = 'none' 
-        return eval_dir, model_dir, model, sub_mode, fusion, f_strategy, f_mode
+        return batch_size, eval_dir, model_dir, model, sub_mode, fusion, f_strategy, f_mode, seq_length, base_learning_rate, decay_rate, hand, modality
 
     sh_file = open(sh_file_fullname,'r')
     content = sh_file.read()
@@ -160,18 +216,32 @@ def read_sh_file(sh_file_fullname):
         elif line.startswith('python'):
             words=line.split()
             if words[0] == 'python' and words[1] == 'main.py':
-                eval_dir, model_dir, model, sub_mode, fusion, f_strategy, f_mode = read_python_line(words)
+                batch_size, eval_dir, model_dir, model, sub_mode, fusion, f_strategy, f_mode, seq_length, base_learning_rate, decay_rate, hand, modality = read_python_line(words)
                 model_dir = os.path.join(base_dir,model_dir)
-                return eval_dir, model_dir, model, sub_mode, fusion, f_strategy, f_mode
-    return '___','___','___','___','___','___','___'
+                
+                logging.info("read_sh_file - batch_size={}".format(batch_size))
+                logging.info("read_sh_file - eval_dir={}".format(eval_dir))
+                logging.info("read_sh_file - model_dir={}".format(model_dir))
+                logging.info("read_sh_file - model={}".format(model))
+                logging.info("read_sh_file - sub_mode={}".format(sub_mode))
+                logging.info("read_sh_file - fusion={}".format(fusion))
+                logging.info("read_sh_file - f_strategy={}".format(f_strategy))
+                logging.info("read_sh_file - f_mode={}".format(f_mode))
+                logging.info("read_sh_file - seq_length={}".format(seq_length))
+                logging.info("read_sh_file - base_learning_rate={}".format(base_learning_rate))
+                logging.info("read_sh_file - decay_rate={}".format(decay_rate))
+                logging.info("read_sh_file - hand={}".format(hand))
+                logging.info("read_sh_file - modality={}".format(modality))
+
+                return batch_size, eval_dir, model_dir, model, sub_mode, fusion, f_strategy, f_mode, seq_length, base_learning_rate, decay_rate, hand, modality
+    return '___','___','___','___','___','___','___','___','___','___','___','___','___'
 
 
-def calc_for_sh_file(sh_file_fullname, eval_dir, f1score_file_fullname):
-    eval_dir_read, model_dir, model, sub_mode, fusion, f_strategy, f_mode = read_sh_file(sh_file_fullname)
-    if eval_dir =='' or eval_dir == None:
-        eval_dir = eval_dir_read
+def calc_for_sh_file(sh_file_fullname, f1score_file_fullname):
+    batch_size, eval_dir, model_dir, model, sub_mode, fusion, f_strategy, f_mode, seq_length, base_learning_rate, decay_rate, hand, modality = read_sh_file(sh_file_fullname)
+
     if os.path.exists(model_dir):
-        calc_f1(eval_dir, model_dir, model, sub_mode, fusion, f_strategy, f_mode, f1score_file_fullname)
+        calc_f1(batch_size, eval_dir, model_dir, model, sub_mode, fusion, f_strategy, f_mode, f1score_file_fullname, seq_length, base_learning_rate, decay_rate, hand, modality)
     else:
         logging.info("path {} does not exists for file {}".format(model_dir, sh_file_fullname))
 
@@ -187,7 +257,7 @@ def calc(root_dir, eval_dir):
             try:
                 if utils.get_file_extension(file) =='.sh':
                     sh_file_fullname = os.path.join(dir,file)
-                    calc_for_sh_file(sh_file_fullname, eval_dir, f1score_file_fullname)
+                    calc_for_sh_file(sh_file_fullname, f1score_file_fullname)
             except Exception as e:
                 logging.error(traceback.format_exc())
 
@@ -205,7 +275,7 @@ if __name__ == '__main__':
         assert utils.get_file_extension(FLAGS.root_dir) == '.sh', 'root_dir is a file therefore its extension has to be .sh, file name={0}'.format(FLAGS.root_dir)
         f1score_file_name_suffix = '_f1score.csv' if FLAGS.eval_mode == 'estimate' else '_f1score_test.csv' 
         f1score_file_fullname = utils.get_file_name_without_extension(FLAGS.root_dir)+ f1score_file_name_suffix
-        calc_for_sh_file(FLAGS.root_dir, FLAGS.eval_dir, f1score_file_fullname)
+        calc_for_sh_file(FLAGS.root_dir, f1score_file_fullname)
     else:
         calc(FLAGS.root_dir,FLAGS.eval_dir)
 
