@@ -20,16 +20,16 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_integer(
     name='batch_size', default=32, help='Batch size used for training.')
 tf.app.flags.DEFINE_string(
-    name='eval_dir', default='', help='Directory for eval data.')
+    name='eval_dir', default=r'C:\H\PhD\ORIBA\Model\FileGen\OREBA\64_raw', help='Directory for eval data.')
 tf.app.flags.DEFINE_string(
-    name='train_dir', default='', help='Directory for training data.')
+    name='train_dir', default=r'C:\H\PhD\ORIBA\Model\FileGen\OREBA\64_raw', help='Directory for training data.')
 tf.app.flags.DEFINE_string(
     name='prob_dir', default='', help='Directory for eval data.')
 tf.app.flags.DEFINE_enum(
     name='mode', default='train_and_evaluate', enum_values=['train_and_evaluate', 'predict_and_export_csv'],
     help='What mode should tensorflow be started in')
 tf.app.flags.DEFINE_enum(
-    name='fusion', default='earliest', enum_values=['none', 'earliest', 'accel_gyro', 'dom_ndom', 'accel_gyro_dom_ndom'],
+    name='fusion', default='none', enum_values=['none', 'earliest', 'accel_gyro', 'dom_ndom', 'accel_gyro_dom_ndom'],
     help='Select the model')
 tf.app.flags.DEFINE_enum(
     name='f_strategy', default='earliest', enum_values=['earliest', 'early', 'early_merge_cnn', 'early_merge_rnn', 'late'],
@@ -38,7 +38,7 @@ tf.app.flags.DEFINE_string(
     name='f_mode', default='',
     help='Select the mode of the proposed fusion model')
 tf.app.flags.DEFINE_enum(
-    name='model', default='cnn_rnn', enum_values=['resnet_cnn', 'resnet_cnn_lstm', 'small_cnn', 'kyritsis', 'cnn_lstm', 'cnn_gru', 'cnn_blstm', 'cnn_rnn'],
+    name='model', default='kyritsis', enum_values=['resnet_cnn', 'resnet_cnn_lstm', 'small_cnn', 'kyritsis', 'cnn_lstm', 'cnn_gru', 'cnn_blstm', 'cnn_rnn'],
     help='Select the model')
 tf.app.flags.DEFINE_string(
     name='sub_mode', default='d:4;ks:1357;pad:valid|d:2;t:l',
@@ -52,13 +52,13 @@ tf.app.flags.DEFINE_integer(
     name='seq_length', default=128,
     help='Number of sequence elements.')
 tf.app.flags.DEFINE_integer(
-    name='seq_pool', default=1, help='Factor of sequence pooling in the model.')
+    name='seq_pool', default=4, help='Factor of sequence pooling in the model.')
 tf.app.flags.DEFINE_integer(
     name='seq_shift', default=1, help='Shift taken in sequence generation.')
 tf.app.flags.DEFINE_float(
     name='train_epochs', default=60, help='Number of training epochs.')
 tf.app.flags.DEFINE_boolean(
-    name='use_sequence_loss', default=False,
+    name='use_sequence_loss', default=True,
     help='Use sequence-to-sequence loss')
 tf.app.flags.DEFINE_float(
     name='base_learning_rate', default=3e-4, help='Base learning rate')
@@ -113,8 +113,8 @@ def run_experiment(arg=None):
     # Run config
     run_config = tf.estimator.RunConfig(
         model_dir=FLAGS.model_dir,
-        save_summary_steps=2500,
-        save_checkpoints_steps=5000)
+        save_summary_steps=500,
+        save_checkpoints_steps=500)
 
     # Define the estimator
     estimator = tf.estimator.Estimator(
@@ -403,12 +403,9 @@ def input_fn(is_training, data_dir):
     # List files
     files = tf.data.Dataset.list_files(filenames)
     # Lookup table for Labels
-    mapping_strings = tf.constant(["Idle", "Intake"])
-    table = tf.contrib.lookup.index_table_from_tensor(
-        mapping=mapping_strings)
-    # Initialize table
-    with tf.Session() as sess:
-        sess.run(table.init)
+    table = tf.lookup.StaticHashTable(
+                tf.lookup.KeyValueTensorInitializer(
+                    ["Idle", "Intake"], [0, 1]), -1)
     # Shuffle files if needed
     if is_training:
         files = files.shuffle(NUM_SHARDS)

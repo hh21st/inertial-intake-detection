@@ -11,7 +11,7 @@ logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s: %(message)s',
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
-    name='root_dir', default='', help='root directory to find all .sh files')
+    name='root_dir', default=r'\\10.2.224.9\c3140147\run\2020\0115\est.d4ks1357d2tl.valid.cl.b256.93.64_std_uni_no_smo.fixed_input.remote.sh', help='root directory to find all .sh files')
 tf.app.flags.DEFINE_boolean(
     name='overwrite', default=True, help='overwrite existing prob files and calculate the metrics if true')
 tf.app.flags.DEFINE_boolean(
