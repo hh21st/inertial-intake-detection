@@ -29,7 +29,7 @@ tf.app.flags.DEFINE_enum(
     name='mode', default='train_and_evaluate', enum_values=['train_and_evaluate', 'predict_and_export_csv'],
     help='What mode should tensorflow be started in')
 tf.app.flags.DEFINE_enum(
-    name='fusion', default='none', enum_values=['none', 'earliest', 'accel_gyro', 'dom_ndom', 'accel_gyro_dom_ndom'],
+    name='fusion', default='earliest', enum_values=['none', 'earliest', 'accel_gyro', 'dom_ndom', 'accel_gyro_dom_ndom'],
     help='Select the model')
 tf.app.flags.DEFINE_enum(
     name='f_strategy', default='earliest', enum_values=['earliest', 'early', 'early_merge_cnn', 'early_merge_rnn', 'late'],
@@ -38,7 +38,7 @@ tf.app.flags.DEFINE_string(
     name='f_mode', default='',
     help='Select the mode of the proposed fusion model')
 tf.app.flags.DEFINE_enum(
-    name='model', default='kyritsis', enum_values=['resnet_cnn', 'resnet_cnn_lstm', 'small_cnn', 'kyritsis', 'cnn_lstm', 'cnn_gru', 'cnn_blstm', 'cnn_rnn'],
+    name='model', default='cnn_rnn', enum_values=['resnet_cnn', 'resnet_cnn_lstm', 'small_cnn', 'kyritsis', 'cnn_lstm', 'cnn_gru', 'cnn_blstm', 'cnn_rnn'],
     help='Select the model')
 tf.app.flags.DEFINE_string(
     name='sub_mode', default='d:4;ks:1357;pad:valid|d:2;t:l',
@@ -52,7 +52,7 @@ tf.app.flags.DEFINE_integer(
     name='seq_length', default=128,
     help='Number of sequence elements.')
 tf.app.flags.DEFINE_integer(
-    name='seq_pool', default=4, help='Factor of sequence pooling in the model.')
+    name='seq_pool', default=1, help='Factor of sequence pooling in the model.')
 tf.app.flags.DEFINE_integer(
     name='seq_shift', default=1, help='Shift taken in sequence generation.')
 tf.app.flags.DEFINE_float(
@@ -533,7 +533,7 @@ def predict_and_export_csv(estimator, eval_input_fn, eval_dir, seq_skip, params)
         labels.append(val[1])
     tf.logging.info("predict_and_export_csv - FLAGS.padding_size = {0}".format(str(FLAGS.padding_size)))
     if FLAGS.padding_size > 0:
-        seq_no = seq_no[seq_skip:]; labels = labels[seq_skip-math.ceil(FLAGS.padding_size/2):len(labels)-(math.floor(FLAGS.padding_size/2))]
+        seq_no = seq_no[seq_skip-math.ceil(FLAGS.padding_size/2):len(labels)-(math.floor(FLAGS.padding_size/2))]; labels = labels[seq_skip-math.ceil(FLAGS.padding_size/2):len(labels)-(math.floor(FLAGS.padding_size/2))]
     else:
         seq_no = seq_no[seq_skip:]; labels = labels[seq_skip:]
     assert (len(labels)==num), "Lengths must match"
