@@ -2,6 +2,7 @@ import os
 import itertools
 import numpy as np
 import tensorflow as tf
+import absl
 import math
 import best_checkpoint_exporter
 import resnet_cnn
@@ -14,63 +15,63 @@ import cnn_blstm
 import fusion
 from tensorflow.python.platform import gfile
 
-tf.logging.set_verbosity(tf.logging.INFO)
+absl.logging.set_verbosity(absl.logging.INFO)
 NUM_SHARDS = 10
-FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_integer(
+FLAGS = absl.app.flags.FLAGS
+absl.app.flags.DEFINE_integer(
     name='batch_size', default=32, help='Batch size used for training.')
-tf.app.flags.DEFINE_string(
+absl.app.flags.DEFINE_string(
     name='eval_dir', default=r'C:\H\PhD\ORIBA\Model\FileGen\OREBA\64_raw', help='Directory for eval data.')
-tf.app.flags.DEFINE_string(
+absl.app.flags.DEFINE_string(
     name='train_dir', default=r'C:\H\PhD\ORIBA\Model\FileGen\OREBA\64_raw', help='Directory for training data.')
-tf.app.flags.DEFINE_string(
+absl.app.flags.DEFINE_string(
     name='prob_dir', default='', help='Directory for eval data.')
-tf.app.flags.DEFINE_enum(
+absl.app.flags.DEFINE_enum(
     name='mode', default='train_and_evaluate', enum_values=['train_and_evaluate', 'predict_and_export_csv'],
     help='What mode should tensorflow be started in')
-tf.app.flags.DEFINE_enum(
+absl.app.flags.DEFINE_enum(
     name='fusion', default='earliest', enum_values=['none', 'earliest', 'accel_gyro', 'dom_ndom', 'accel_gyro_dom_ndom'],
     help='Select the model')
-tf.app.flags.DEFINE_enum(
+absl.app.flags.DEFINE_enum(
     name='f_strategy', default='earliest', enum_values=['earliest', 'early', 'early_merge_cnn', 'early_merge_rnn', 'late'],
     help='Select the fusion strategy')
-tf.app.flags.DEFINE_string(
+absl.app.flags.DEFINE_string(
     name='f_mode', default='',
     help='Select the mode of the proposed fusion model')
-tf.app.flags.DEFINE_enum(
+absl.app.flags.DEFINE_enum(
     name='model', default='cnn_rnn', enum_values=['resnet_cnn', 'resnet_cnn_lstm', 'small_cnn', 'kyritsis', 'cnn_lstm', 'cnn_gru', 'cnn_blstm', 'cnn_rnn'],
     help='Select the model')
-tf.app.flags.DEFINE_string(
+absl.app.flags.DEFINE_string(
     name='sub_mode', default='d:4;ks:1357;pad:valid|d:2;t:l',
     help='Select the mode of the proposed cnn_lstm, cnn_gru or cnn_blstm model')
-tf.app.flags.DEFINE_string(
+absl.app.flags.DEFINE_string(
     name='model_dir', default='run',
     help='Output directory for model and training stats.')
-tf.app.flags.DEFINE_integer(
+absl.app.flags.DEFINE_integer(
     name='num_sequences', default=3175419, help='Number of training example steps.')
-tf.app.flags.DEFINE_integer(
+absl.app.flags.DEFINE_integer(
     name='seq_length', default=128,
     help='Number of sequence elements.')
-tf.app.flags.DEFINE_integer(
+absl.app.flags.DEFINE_integer(
     name='seq_pool', default=1, help='Factor of sequence pooling in the model.')
-tf.app.flags.DEFINE_integer(
+absl.app.flags.DEFINE_integer(
     name='seq_shift', default=1, help='Shift taken in sequence generation.')
-tf.app.flags.DEFINE_float(
+absl.app.flags.DEFINE_float(
     name='train_epochs', default=60, help='Number of training epochs.')
-tf.app.flags.DEFINE_boolean(
+absl.app.flags.DEFINE_boolean(
     name='use_sequence_loss', default=True,
     help='Use sequence-to-sequence loss')
-tf.app.flags.DEFINE_float(
+absl.app.flags.DEFINE_float(
     name='base_learning_rate', default=3e-4, help='Base learning rate')
-tf.app.flags.DEFINE_float(
+absl.app.flags.DEFINE_float(
     name='decay_rate', default=0.93, help='Decay rate of the learning rate.')
-tf.app.flags.DEFINE_enum(
+absl.app.flags.DEFINE_enum(
     name='hand', default='both', enum_values=['both', 'dom', 'nondom'],
     help='specified data from which hands are included in the input')
-tf.app.flags.DEFINE_enum(
+absl.app.flags.DEFINE_enum(
     name='modality', default='both', enum_values=['both', 'accel', 'gyro'],
     help='specified data from what modalities are included in the input')
-tf.app.flags.DEFINE_integer(
+absl.app.flags.DEFINE_integer(
     name='padding_size', default=-1,
     help='Padding size (for internal usage, no setting from input).')
 
@@ -399,7 +400,7 @@ def input_fn(is_training, data_dir):
     filenames = gfile.Glob(os.path.join(data_dir, "*.csv"))
     if not filenames:
         raise RuntimeError('No files found.')
-    tf.logging.info("Found {0} files.".format(str(len(filenames))))
+    absl.logging.info("Found {0} files.".format(str(len(filenames))))
     # List files
     files = tf.data.Dataset.list_files(filenames)
     # Lookup table for Labels
@@ -499,8 +500,8 @@ def _get_transformation_parser(is_training):
 
 
 def predict_and_export_csv(estimator, eval_input_fn, eval_dir, seq_skip, params):
-    tf.logging.info("Working on {0}".format(eval_dir))
-    tf.logging.info("Starting prediction...")
+    absl.logging.info("Working on {0}".format(eval_dir))
+    absl.logging.info("Starting prediction...")
     predictions = estimator.predict(input_fn=eval_input_fn)
     pred_list = list(itertools.islice(predictions, None))
     pred_probs_1 = list(map(lambda item: item["probabilities"][1], pred_list))
@@ -531,7 +532,7 @@ def predict_and_export_csv(estimator, eval_input_fn, eval_dir, seq_skip, params)
         val = sess.run(elem)
         seq_no.append(val[0])
         labels.append(val[1])
-    tf.logging.info("predict_and_export_csv - FLAGS.padding_size = {0}".format(str(FLAGS.padding_size)))
+    absl.logging.info("predict_and_export_csv - FLAGS.padding_size = {0}".format(str(FLAGS.padding_size)))
     if FLAGS.padding_size > 0:
         seq_no = seq_no[seq_skip-math.ceil(FLAGS.padding_size/2):len(labels)-(math.floor(FLAGS.padding_size/2))]; labels = labels[seq_skip-math.ceil(FLAGS.padding_size/2):len(labels)-(math.floor(FLAGS.padding_size/2))]
     else:
@@ -540,15 +541,15 @@ def predict_and_export_csv(estimator, eval_input_fn, eval_dir, seq_skip, params)
     name = os.path.normpath(eval_dir).split(os.sep)[-1]
     fullname = os.path.join(FLAGS.prob_dir,name)
     if os.path.isfile(fullname):
-        tf.logging.info("{0} already exists! Skipping...".format(fullname))
+        absl.logging.info("{0} already exists! Skipping...".format(fullname))
     else:
-        tf.logging.info("Writing {0} examples to {1}...".format(num, fullname))
+        absl.logging.info("Writing {0} examples to {1}...".format(num, fullname))
         pred_array = np.column_stack((seq_no, labels, pred_probs_1))
         np.savetxt("{0}.csv".format(fullname), pred_array, delimiter=",", fmt=['%i','%i','%f'])
 
 
 # Run
 if __name__ == "__main__":
-    tf.app.run(
+    absl.app.run(
         main=run_experiment
     )
