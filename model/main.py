@@ -527,6 +527,7 @@ def predict_and_export_csv(estimator, eval_input_fn, eval_dir, seq_skip, params)
     elem = iterator.get_next()
     labels = []; seq_no = []; sess = tf.Session()
     sess.run(iterator.initializer)
+    sess.run(tf.tables_initializer())
     for i in range(0, num + seq_skip):
         val = sess.run(elem)
         seq_no.append(val[0])
