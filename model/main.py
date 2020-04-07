@@ -511,9 +511,9 @@ def predict_and_export_csv(estimator, eval_input_fn, eval_dir, seq_skip, params)
     frame_id_index = 1
     label1_index = 16
     select_cols = [frame_id_index, label1_index]; record_defaults = [tf.int32, tf.string]
-    mapping_strings = tf.constant(["Idle", "Intake"])
-    table = tf.contrib.lookup.index_table_from_tensor(
-        mapping=mapping_strings)
+    table = tf.lookup.StaticHashTable(
+                tf.lookup.KeyValueTensorInitializer(
+                    ["Idle", "Intake"], [0, 1]), -1)
     def input_parser(seqNo, label):
         label = table.lookup(label)
         return seqNo, label
@@ -527,7 +527,6 @@ def predict_and_export_csv(estimator, eval_input_fn, eval_dir, seq_skip, params)
     elem = iterator.get_next()
     labels = []; seq_no = []; sess = tf.Session()
     sess.run(iterator.initializer)
-    sess.run(table.init)
     for i in range(0, num + seq_skip):
         val = sess.run(elem)
         seq_no.append(val[0])

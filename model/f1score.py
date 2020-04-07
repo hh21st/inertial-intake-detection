@@ -13,7 +13,7 @@ logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s: %(message)s',
 
 FLAGS = absl.app.flags.FLAGS
 absl.app.flags.DEFINE_enum(
-    name='eval_mpdule', default='eval', enum_values=['eval', 'eval2'], 
+    name='eval_module', default='eval', enum_values=['eval', 'eval2'], 
     help='eval module to use')
 absl.app.flags.DEFINE_string(
     name='root_dir', default=r'C:\H\PhD\ORIBA\Model\F1\more\est.d4ks1357d2tl.valid.cl.b256.93.64_std_uni_no_smo.fixed_input.sh', help='root directory to find all .sh files')
@@ -121,6 +121,8 @@ def calc_f1(batch_size, eval_dir, model_dir, model, sub_mode, fusion, f_strategy
     FLAGS.hand = hand
     FLAGS.modality = modality
     #
+    FLAGS.min_dist = seq_length
+    #
     FLAGS.mode ='predict_and_export_csv'
     model_desciption = utils.get_current_dir_name(model_dir)
     model_dir_bests = os.path.join(model_dir,'best_checkpoints')
@@ -145,12 +147,12 @@ def calc_f1(batch_size, eval_dir, model_dir, model, sub_mode, fusion, f_strategy
                 main.run_experiment()
                 logging.info("probabilities file for validation folder {} was added to folder {}".format(FLAGS.eval_dir, FLAGS.prob_dir))
         
-            if FLAGS.eval_mpdule == 'eval':
+            if FLAGS.eval_module == 'eval':
                 uar, tp, fn, fp_1, fp_2, precision, recall, f1, best_threshold = eval.main()
-            if FLAGS.eval_mpdule == 'eval2':
+            elif FLAGS.eval_module == 'eval2':
                 uar, tp, fn, fp_1, fp_2, precision, recall, f1, best_threshold = eval2.main()
             else:
-                raise ValueError('FLAGS.eval_mpdule is not implemented', FLAGS.eval_mpdule)
+                raise ValueError('FLAGS.eval_module is not implemented', FLAGS.eval_module)
             if uar != -1:
                 write_f1score_line(f1score_file_fullname,model_desciption,utils.get_current_dir_name(index_dir),f1,uar,tp,fn,fp_1,fp_2,precision,recall,best_threshold,model_dir)
         except Exception as e:
@@ -269,11 +271,8 @@ def calc(root_dir, eval_dir):
                 logging.error(traceback.format_exc())
 
 def mainf1score(args=None):
-    FLAGS.eval_mpdule = 'eval'
-    FLAGS.eval_mode = 'predict'
     FLAGS.col_label = 1
     FLAGS.col_prob = 2
-    FLAGS.min_dist = 128
 
     #if FLAGS.root_dir=='' or FLAGS.root_dir == None:
         #FLAGS.root_dir = r'\\10.2.224.9\c3140147\run'
