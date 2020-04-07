@@ -1,33 +1,38 @@
 import tensorflow as tf
+import absl
 import os
 import logging
 import traceback
-import utils
 import main
+import utils
 import eval
+import eval2
 
 logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s: %(message)s',
     datefmt='%H:%M:%S', level=logging.INFO)
 
-FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string(
-    name='root_dir', default=r'\\10.2.224.9\c3140147\run\2020\0115\est.d4ks1357d2tl.valid.cl.b256.93.64_std_uni_no_smo.fixed_input.remote.sh', help='root directory to find all .sh files')
-tf.app.flags.DEFINE_boolean(
-    name='overwrite', default=True, help='overwrite existing prob files and calculate the metrics if true')
-tf.app.flags.DEFINE_boolean(
+FLAGS = absl.app.flags.FLAGS
+absl.app.flags.DEFINE_enum(
+    name='eval_mpdule', default='eval', enum_values=['eval', 'eval2'], 
+    help='eval module to use')
+absl.app.flags.DEFINE_string(
+    name='root_dir', default=r'C:\H\PhD\ORIBA\Model\F1\more\est.d4ks1357d2tl.valid.cl.b256.93.64_std_uni_no_smo.fixed_input.sh', help='root directory to find all .sh files')
+absl.app.flags.DEFINE_boolean(
+    name='overwrite', default=False, help='overwrite existing prob files and calculate the metrics if true')
+absl.app.flags.DEFINE_boolean(
     name='is_initialized', default=False, help='true if the app been initialized (for internal use)')
-tf.app.flags.DEFINE_integer(
+absl.app.flags.DEFINE_integer(
     name='original_batch_size', default=32, help='Batch size used for training. (for internal use)')
-tf.app.flags.DEFINE_integer(
+absl.app.flags.DEFINE_integer(
     name='original_seq_length', default=128, help='Number of sequence elements. (for internal use)')
-tf.app.flags.DEFINE_float(
+absl.app.flags.DEFINE_float(
     name='original_base_learning_rate', default=3e-4, help='Base learning rate (for internal use)')
-tf.app.flags.DEFINE_float(
+absl.app.flags.DEFINE_float(
     name='original_decay_rate', default=0.93, help='Decay rate of the learning rate. (for internal use)')
-tf.app.flags.DEFINE_enum(
+absl.app.flags.DEFINE_enum(
     name='original_hand', default='both', enum_values=['both', 'dom', 'nondom'],
     help='specified data from which hands are included in the input (for internal use)')
-tf.app.flags.DEFINE_enum(
+absl.app.flags.DEFINE_enum(
     name='original_modality', default='both', enum_values=['both', 'accel', 'gyro'],
     help='specified data from what modalities are included in the input (for internal use)')
 
@@ -140,10 +145,12 @@ def calc_f1(batch_size, eval_dir, model_dir, model, sub_mode, fusion, f_strategy
                 main.run_experiment()
                 logging.info("probabilities file for validation folder {} was added to folder {}".format(FLAGS.eval_dir, FLAGS.prob_dir))
         
-            FLAGS.min_dist = 128
-            FLAGS.col_label = 1
-            FLAGS.col_prob = 2
-            uar, tp, fn, fp_1, fp_2, precision, recall, f1, best_threshold = eval.main()
+            if FLAGS.eval_mpdule == 'eval':
+                uar, tp, fn, fp_1, fp_2, precision, recall, f1, best_threshold = eval.main()
+            if FLAGS.eval_mpdule == 'eval2':
+                uar, tp, fn, fp_1, fp_2, precision, recall, f1, best_threshold = eval2.main()
+            else:
+                raise ValueError('FLAGS.eval_mpdule is not implemented', FLAGS.eval_mpdule)
             if uar != -1:
                 write_f1score_line(f1score_file_fullname,model_desciption,utils.get_current_dir_name(index_dir),f1,uar,tp,fn,fp_1,fp_2,precision,recall,best_threshold,model_dir)
         except Exception as e:
@@ -261,9 +268,13 @@ def calc(root_dir, eval_dir):
             except Exception as e:
                 logging.error(traceback.format_exc())
 
+def mainf1score(args=None):
+    FLAGS.eval_mpdule = 'eval'
+    FLAGS.eval_mode = 'predict'
+    FLAGS.col_label = 1
+    FLAGS.col_prob = 2
+    FLAGS.min_dist = 128
 
-
-if __name__ == '__main__':
     #if FLAGS.root_dir=='' or FLAGS.root_dir == None:
         #FLAGS.root_dir = r'\\10.2.224.9\c3140147\run'
         #FLAGS.root_dir = r'/home/c3140147/run'
@@ -281,3 +292,7 @@ if __name__ == '__main__':
 
     #f1score_file_fullname = os.path.join(FLAGS.root_dir,'f1scores.csv')
     #calc_for_sh_file(r'\\10.2.224.9\c3140147\run\20191002\20191017\est.d4ks1357d2tl.valid.cl.93.64_std_uni.smo_0.oldInput.sh',FLAGS.eval_dir, f1score_file_fullname)
+
+if __name__ == '__main__':
+
+    absl.app.run(main=mainf1score)

@@ -7,28 +7,29 @@ import glob
 import numpy as np
 import os
 import tensorflow as tf
+import absl
 import utils
 
-FLAGS = tf.app.flags.FLAGS
+FLAGS = absl.app.flags.FLAGS
 if 'prob_dir' not in FLAGS.__flags.keys():
-    tf.app.flags.DEFINE_string(
+    absl.app.flags.DEFINE_string(
         name='prob_dir', default='', help='Directory for probability data.')
-tf.app.flags.DEFINE_integer(
+absl.app.flags.DEFINE_integer(
     name='min_dist', default=128, help='Minimum frames between detections.')
-tf.app.flags.DEFINE_float(
+absl.app.flags.DEFINE_float(
     name='threshold', default=0.9, help='Detection threshold probability')
-tf.app.flags.DEFINE_enum(
-    name='eval_mode', default='estimate', enum_values=['estimate', 'predict'], 
+absl.app.flags.DEFINE_enum(
+    name='eval_mode', default='predict', enum_values=['estimate', 'predict'], 
     help='estimation using validation set or predicting using test set')
-tf.app.flags.DEFINE_float(
+absl.app.flags.DEFINE_float(
     name='min_threshold', default=0.5, help='Minimum detection threshold probability')
-tf.app.flags.DEFINE_float(
+absl.app.flags.DEFINE_float(
     name='max_threshold', default=1, help='Maximum detection threshold probability')
-tf.app.flags.DEFINE_float(
+absl.app.flags.DEFINE_float(
     name='inc_threshold', default=0.001, help='Increment for detection threshold search')
-tf.app.flags.DEFINE_integer(
+absl.app.flags.DEFINE_integer(
     name='col_label', default=1, help='Col number of label in csv')
-tf.app.flags.DEFINE_integer(
+absl.app.flags.DEFINE_integer(
     name='col_prob', default=2, help='Col number of probability in csv')
 
 CSV_SUFFIX = '*.csv'
@@ -36,7 +37,7 @@ CSV_SUFFIX = '*.csv'
 def import_probs_and_labels(filepath, col_label, col_prob):
     """Import probabilities and labels from csv"""
     filenames = glob.glob(os.path.join(filepath, CSV_SUFFIX))
-    assert filenames, "No files found for evaluation"
+    assert filenames, "No prob files were found"
     labels = []
     probs = []
     for filename in filenames:
@@ -198,4 +199,4 @@ def main(args=None):
     return uar, tp, fn, fp_1, fp_2, prec, rec, f1, best_threshold
 # Run
 if __name__ == '__main__':
-    tf.app.run(main=main)
+    absl.app.run(main=main)

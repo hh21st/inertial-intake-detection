@@ -52,9 +52,12 @@ def get_parent_dir(path):
 def get_current_dir_name(path):
     return os.path.basename(path)
 
-def get_file_name_from_path(path):
+def get_file_name_from_path(path, exclude_extension = False):
     head, tail = ntpath.split(path)
-    return tail or ntpath.basename(head)
+    filename = tail or ntpath.basename(head)
+    if exclude_extension:
+        filename = get_file_name_without_extension(filename)
+    return filename
 
 def is_file(file_path):
     return True if os.path.isfile(file_path) else False
