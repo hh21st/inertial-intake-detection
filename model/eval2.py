@@ -40,7 +40,27 @@ if 'col_prob' not in FLAGS.__flags.keys():
     absl.app.flags.DEFINE_integer(
         name='col_prob', default=2, help='Col number of probability in csv')
 
+absl.app.flags.DEFINE_string(
+    name='src_dir', default=r'\\uncle.newcastle.edu.au\entities\research\oreba\OREBA\Phase 1\Synchronised', help='Directory to search for data.')
+absl.app.flags.DEFINE_string(
+    name='dom_hand_info_file_name', default='most_used_hand.csv', help='the name of the file that contains the dominant hand info')
+
+
 CSV_SUFFIX = '*.csv'
+
+def read_dominant_from_file(src_dir, subject_id, dom_hand_info_file_name):
+    file_full_name = os.path.join(src_dir, dom_hand_info_file_name)
+    dom_hand_info = csv.reader(open(file_full_name, 'r'), delimiter=',')
+    next(dom_hand_info, None)
+    for row in dom_hand_info:
+        if subject_id == row[0]:
+            return row[1].strip().lower()
+    return 'not found'
+
+def read_dominant(subject_id):
+    if len(subject_id) == 4:
+        subject_id += '_1'
+    return read_dominant_from_file(FLAGS.src_dir, subject_id, FLAGS.dom_hand_info_file_name)
 
 def import_probs_and_labels(filepath, col_label, col_prob):
     """Import probabilities and labels from csv"""
@@ -157,6 +177,10 @@ def eval_stage_2(dets, labels, labels_2, labels_3, labels_4, frame_ids, p_ids):
     assert fp_2 == len(idxs_fp_2), 'fp_2 == len(idxs_fp_2),{0},{1}'.format(fp_2, len(idxs_fp_2))
     
 ####
+    idxs_t_short = [split_idx for split_idx in idxs_t if len(split_idx)<32]
+    
+    assert len(idxs_t_short)==0
+    
     idxs_tp = [split_idx for split_idx in idxs_t if np.sum(dets[split_idx])>0]
     
     idxs_tp_labels2_Eat = [idx_tp for idx_tp in idxs_tp if labels_2[idx_tp][0]=='Eat']
@@ -182,6 +206,14 @@ def eval_stage_2(dets, labels, labels_2, labels_3, labels_4, frame_ids, p_ids):
     idxs_tp_labels3_Idle_len = len(idxs_tp_labels3_Idle)
     assert idxs_tp_labels3_Idle_len == 0, 'idxs_tp_labels3_Idle_len'
     assert idxs_tp_labels3_Right_len + idxs_tp_labels3_Left_len + idxs_tp_labels3_Both_len == len(idxs_tp), 'idxs_tp_labels3_Right_len + idxs_tp_labels3_Left_len + idxs_tp_labels3_Both_len,{0},{1}'.format(idxs_tp_labels3_Right_len + idxs_tp_labels3_Left_len + idxs_tp_labels3_Both_len,len(idxs_tp))
+
+    idxs_tp_labels3_dominant = [idx_tp for idx_tp in idxs_tp if (labels_3[idx_tp][0]=='Right' and read_dominant(p_ids[idx_tp][0])=='right') or (labels_3[idx_tp][0]=='Left' and read_dominant(p_ids[idx_tp][0])=='left')]
+    idxs_tp_labels3_nondominant = [idx_tp for idx_tp in idxs_tp if (labels_3[idx_tp][0]=='Right' and read_dominant(p_ids[idx_tp][0])=='left') or (labels_3[idx_tp][0]=='Left' and read_dominant(p_ids[idx_tp][0])=='right')]
+
+    idxs_tp_labels3_dominant_len = len(idxs_tp_labels3_dominant)
+    idxs_tp_labels3_nondominant_len = len(idxs_tp_labels3_nondominant)
+
+    assert idxs_tp_labels3_dominant_len + idxs_tp_labels3_nondominant_len == idxs_tp_labels3_Right_len + idxs_tp_labels3_Left_len , 'dominant and nondominantlen {0} not the same as right and left {1}'.format(idxs_tp_labels3_dominant_len + idxs_tp_labels3_nondominant_len, idxs_tp_labels3_Right_len + idxs_tp_labels3_Left_len)
     
     idxs_tp_labels4_Spoon = [idx_tp for idx_tp in idxs_tp if labels_4[idx_tp][0]=='Spoon']
     idxs_tp_labels4_Fork = [idx_tp for idx_tp in idxs_tp if labels_4[idx_tp][0]=='Fork']
@@ -228,6 +260,14 @@ def eval_stage_2(dets, labels, labels_2, labels_3, labels_4, frame_ids, p_ids):
     idxs_fn_labels3_Idle_len = len(idxs_fn_labels3_Idle)
     assert idxs_fn_labels3_Idle_len == 0, 'idxs_fn_labels3_Idle_len'
     assert idxs_fn_labels3_Right_len + idxs_fn_labels3_Left_len + idxs_fn_labels3_Both_len == len(idxs_fn), 'idxs_fn_labels3_Right_len + idxs_fn_labels3_Left_len + idxs_fn_labels3_Both_len,{0},{1}'.format(idxs_fn_labels3_Right_len + idxs_fn_labels3_Left_len + idxs_fn_labels3_Both_len,len(idxs_fn))
+
+    idxs_fn_labels3_dominant = [idx_fn for idx_fn in idxs_fn if (labels_3[idx_fn][0]=='Right' and read_dominant(p_ids[idx_fn][0])=='right') or (labels_3[idx_fn][0]=='Left' and read_dominant(p_ids[idx_fn][0])=='left')]
+    idxs_fn_labels3_nondominant = [idx_fn for idx_fn in idxs_fn if (labels_3[idx_fn][0]=='Right' and read_dominant(p_ids[idx_fn][0])=='left') or (labels_3[idx_fn][0]=='Left' and read_dominant(p_ids[idx_fn][0])=='right')]
+
+    idxs_fn_labels3_dominant_len = len(idxs_fn_labels3_dominant)
+    idxs_fn_labels3_nondominant_len = len(idxs_fn_labels3_nondominant)
+
+    assert idxs_fn_labels3_dominant_len + idxs_fn_labels3_nondominant_len == idxs_fn_labels3_Right_len + idxs_fn_labels3_Left_len , 'dominant and nondominantlen {0} not the same as right and left {1}'.format(idxs_fn_labels3_dominant_len + idxs_fn_labels3_nondominant_len, idxs_fn_labels3_Right_len + idxs_fn_labels3_Left_len)
     
     idxs_fn_labels4_Spoon = [idx_fn for idx_fn in idxs_fn if labels_4[idx_fn][0]=='Spoon']
     idxs_fn_labels4_Fork = [idx_fn for idx_fn in idxs_fn if labels_4[idx_fn][0]=='Fork']
@@ -258,18 +298,18 @@ def eval_stage_2(dets, labels, labels_2, labels_3, labels_4, frame_ids, p_ids):
         f1 = 0
     return tp, fn, fp_1, fp_2, prec, rec, f1,len(idxs_tp),\
        idxs_tp_labels2_Eat_len, idxs_tp_labels2_Drink_len, idxs_tp_labels2_Lick_len,\
-       idxs_tp_labels3_Right_len, idxs_tp_labels3_Left_len, idxs_tp_labels3_Both_len,\
+       idxs_tp_labels3_Right_len, idxs_tp_labels3_Left_len, idxs_tp_labels3_Both_len, idxs_tp_labels3_dominant_len, idxs_tp_labels3_nondominant_len,\
        idxs_tp_labels4_Spoon_len, idxs_tp_labels4_Fork_len, idxs_tp_labels4_Cup_len, idxs_tp_labels4_Hand_len, idxs_tp_labels4_Knife_len, idxs_tp_labels4_Finger_len,\
        idxs_fn_labels2_Eat_len, idxs_fn_labels2_Drink_len, idxs_fn_labels2_Lick_len,\
-       idxs_fn_labels3_Right_len, idxs_fn_labels3_Left_len, idxs_fn_labels3_Both_len,\
+       idxs_fn_labels3_Right_len, idxs_fn_labels3_Left_len, idxs_fn_labels3_Both_len, idxs_fn_labels3_dominant_len, idxs_fn_labels3_nondominant_len,\
        idxs_fn_labels4_Spoon_len, idxs_fn_labels4_Fork_len, idxs_fn_labels4_Cup_len, idxs_fn_labels4_Hand_len, idxs_fn_labels4_Knife_len, idxs_fn_labels4_Finger_len
 
 def write_logfile(result_file_name, uar, best_threshold, tp, fn, fp_1, fp_2, prec, rec, f1, len_idxs_tp,
         idxs_tp_labels2_Eat_len, idxs_tp_labels2_Drink_len, idxs_tp_labels2_Lick_len,
-        idxs_tp_labels3_Right_len, idxs_tp_labels3_Left_len, idxs_tp_labels3_Both_len,
+        idxs_tp_labels3_Right_len, idxs_tp_labels3_Left_len, idxs_tp_labels3_Both_len, idxs_tp_labels3_dominant_len, idxs_tp_labels3_nondominant_len,
         idxs_tp_labels4_Spoon_len, idxs_tp_labels4_Fork_len, idxs_tp_labels4_Cup_len, idxs_tp_labels4_Hand_len, idxs_tp_labels4_Knife_len, idxs_tp_labels4_Finger_len,
         idxs_fn_labels2_Eat_len, idxs_fn_labels2_Drink_len, idxs_fn_labels2_Lick_len,
-        idxs_fn_labels3_Right_len, idxs_fn_labels3_Left_len, idxs_fn_labels3_Both_len,
+        idxs_fn_labels3_Right_len, idxs_fn_labels3_Left_len, idxs_fn_labels3_Both_len, idxs_fn_labels3_dominant_len, idxs_fn_labels3_nondominant_len,
         idxs_fn_labels4_Spoon_len, idxs_fn_labels4_Fork_len, idxs_fn_labels4_Cup_len, idxs_fn_labels4_Hand_len, idxs_fn_labels4_Knife_len, idxs_fn_labels4_Finger_len):
     result_file = open(result_file_name, 'w')
     result_file.write('UAR: {}'.format(uar))
@@ -304,6 +344,10 @@ def write_logfile(result_file_name, uar, best_threshold, tp, fn, fp_1, fp_2, pre
     result_file.write('\n')
     result_file.write('idxs_tp_labels3_Both_len  :{}'.format(idxs_tp_labels3_Both_len))
     result_file.write('\n')
+    result_file.write('idxs_tp_labels3_dominant_len  :{}'.format(idxs_tp_labels3_dominant_len))
+    result_file.write('\n')
+    result_file.write('idxs_tp_labels3_nondominant_len  :{}'.format(idxs_tp_labels3_nondominant_len))
+    result_file.write('\n')
     result_file.write('idxs_tp_labels4_Spoon_len :{}'.format(idxs_tp_labels4_Spoon_len))
     result_file.write('\n')
     result_file.write('idxs_tp_labels4_Fork_len  :{}'.format(idxs_tp_labels4_Fork_len))
@@ -327,6 +371,10 @@ def write_logfile(result_file_name, uar, best_threshold, tp, fn, fp_1, fp_2, pre
     result_file.write('idxs_fn_labels3_Left_len  :{}'.format(idxs_fn_labels3_Left_len))
     result_file.write('\n')
     result_file.write('idxs_fn_labels3_Both_len  :{}'.format(idxs_fn_labels3_Both_len))
+    result_file.write('\n')
+    result_file.write('idxs_fn_labels3_dominant_len  :{}'.format(idxs_fn_labels3_dominant_len))
+    result_file.write('\n')
+    result_file.write('idxs_fn_labels3_nondominant_len  :{}'.format(idxs_fn_labels3_nondominant_len))
     result_file.write('\n')
     result_file.write('idxs_fn_labels4_Spoon_len :{}'.format(idxs_fn_labels4_Spoon_len))
     result_file.write('\n')
@@ -364,7 +412,7 @@ def main(args=None):
             # Perform max search
             dets = max_search(probs, threshold, FLAGS.min_dist)
             # Calculate Stage II
-            _, _, _, _, _, _, f1, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = eval_stage_2(dets, labels, labels_2, labels_3, labels_4, frame_ids, p_ids)
+            _, _, _, _, _, _, f1, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = eval_stage_2(dets, labels, labels_2, labels_3, labels_4, frame_ids, p_ids)
             f1_results.append(f1)
         # Find best threshold
         best_threshold = threshold_vals[np.argmax(f1_results)]
@@ -384,18 +432,18 @@ def main(args=None):
 
     tp, fn, fp_1, fp_2, prec, rec, f1, len_idxs_tp,\
     idxs_tp_labels2_Eat_len, idxs_tp_labels2_Drink_len, idxs_tp_labels2_Lick_len,\
-    idxs_tp_labels3_Right_len, idxs_tp_labels3_Left_len, idxs_tp_labels3_Both_len,\
+    idxs_tp_labels3_Right_len, idxs_tp_labels3_Left_len, idxs_tp_labels3_Both_len, idxs_tp_labels3_dominant_len, idxs_tp_labels3_nondominant_len,\
     idxs_tp_labels4_Spoon_len, idxs_tp_labels4_Fork_len, idxs_tp_labels4_Cup_len, idxs_tp_labels4_Hand_len, idxs_tp_labels4_Knife_len, idxs_tp_labels4_Finger_len,\
     idxs_fn_labels2_Eat_len, idxs_fn_labels2_Drink_len, idxs_fn_labels2_Lick_len,\
-    idxs_fn_labels3_Right_len, idxs_fn_labels3_Left_len, idxs_fn_labels3_Both_len,\
+    idxs_fn_labels3_Right_len, idxs_fn_labels3_Left_len, idxs_fn_labels3_Both_len, idxs_fn_labels3_dominant_len, idxs_fn_labels3_nondominant_len,\
     idxs_fn_labels4_Spoon_len, idxs_fn_labels4_Fork_len, idxs_fn_labels4_Cup_len, idxs_fn_labels4_Hand_len, idxs_fn_labels4_Knife_len, idxs_fn_labels4_Finger_len = eval_stage_2(dets, labels, labels_2, labels_3, labels_4, frame_ids, p_ids)
         
     write_logfile(result_file_name, uar, best_threshold, tp, fn, fp_1, fp_2, prec, rec, f1, len_idxs_tp,
     idxs_tp_labels2_Eat_len, idxs_tp_labels2_Drink_len, idxs_tp_labels2_Lick_len,
-    idxs_tp_labels3_Right_len, idxs_tp_labels3_Left_len, idxs_tp_labels3_Both_len,
+    idxs_tp_labels3_Right_len, idxs_tp_labels3_Left_len, idxs_tp_labels3_Both_len, idxs_tp_labels3_dominant_len, idxs_tp_labels3_nondominant_len,
     idxs_tp_labels4_Spoon_len, idxs_tp_labels4_Fork_len, idxs_tp_labels4_Cup_len, idxs_tp_labels4_Hand_len, idxs_tp_labels4_Knife_len, idxs_tp_labels4_Finger_len,
     idxs_fn_labels2_Eat_len, idxs_fn_labels2_Drink_len, idxs_fn_labels2_Lick_len,
-    idxs_fn_labels3_Right_len, idxs_fn_labels3_Left_len, idxs_fn_labels3_Both_len,
+    idxs_fn_labels3_Right_len, idxs_fn_labels3_Left_len, idxs_fn_labels3_Both_len, idxs_fn_labels3_dominant_len, idxs_fn_labels3_nondominant_len,
     idxs_fn_labels4_Spoon_len, idxs_fn_labels4_Fork_len, idxs_fn_labels4_Cup_len, idxs_fn_labels4_Hand_len, idxs_fn_labels4_Knife_len, idxs_fn_labels4_Finger_len)
 
     return uar, tp, fn, fp_1, fp_2, prec, rec, f1, best_threshold
