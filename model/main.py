@@ -406,7 +406,7 @@ def input_fn(is_training, data_dir):
     # Lookup table for Labels
     table = tf.lookup.StaticHashTable(
                 tf.lookup.KeyValueTensorInitializer(
-                    ["Idle", "Intake"], [0, 1]), -1)
+                    ["Idle", "Intake", "Serve"], [0, 1, 0]), -1)
     # Shuffle files if needed
     if is_training:
         files = files.shuffle(NUM_SHARDS)
@@ -513,7 +513,7 @@ def predict_and_export_csv(estimator, eval_input_fn, eval_dir, seq_skip, params)
     select_cols = [frame_id_index, label1_index]; record_defaults = [tf.int32, tf.string]
     table = tf.lookup.StaticHashTable(
                 tf.lookup.KeyValueTensorInitializer(
-                    ["Idle", "Intake"], [0, 1]), -1)
+                    ["Idle", "Intake", "Serve"], [0, 1, 0]), -1)
     def input_parser(seqNo, label):
         label = table.lookup(label)
         return seqNo, label
