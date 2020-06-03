@@ -3,6 +3,7 @@ import shutil
 import logging
 from pathlib import Path
 import ntpath
+import glob
 
 logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s: %(message)s',
     datefmt='%H:%M:%S', level=logging.INFO)
@@ -71,3 +72,42 @@ def get_file_extension(file_name):
 
 def get_file_name_without_extension(file_name):
     return os.path.splitext(file_name)[0]
+
+def calc_recall(tp, fn, rounding_digits = None):
+    recall = tp / (tp + fn)
+    if rounding_digits != None:
+        recall = round(recall, rounding_digits)
+    return recall
+
+def calc_precision(tp, fp, rounding_digits = None):
+    precision = tp / (tp + fp)
+    if rounding_digits != None:
+        precision = round(precision, rounding_digits)
+    return precision
+
+def count_file_lines(filename, exclude_first_line = False):
+    with open(filename) as f:
+        count = sum(1 for line in f)
+    if exclude_first_line:
+        count -=1
+    return count
+
+def get_files_in_dir(dir, extensionPattern = None):
+    if(extensionPattern==None):
+        return [os.path.join(dir, f) for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))]
+    else:
+        return glob.glob(os.path.join(dir, extensionPattern))
+
+def count_files_lines_in_dir(dir, extensionPattern = None, exclude_first_line = False):
+    count = 0
+    filenames = get_files_in_dir(dir, extensionPattern)
+    for filename in filenames:
+        count += count_file_lines(filename, exclude_first_line)
+    return count
+
+
+
+if __name__ == '__main__':
+    #test:
+    result=count_files_lines_in_dir(r'C:\H\PhD\ORIBA\Model\FileGen\OREBA.dis\64_std_uni_no_smo', '*.csv', True)
+    print(result)

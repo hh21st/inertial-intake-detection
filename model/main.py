@@ -14,6 +14,7 @@ import cnn_gru
 import cnn_blstm
 import fusion
 from tensorflow.python.platform import gfile
+import utils
 
 absl.logging.set_verbosity(absl.logging.INFO)
 NUM_SHARDS = 10
@@ -48,8 +49,6 @@ absl.app.flags.DEFINE_string(
     name='model_dir', default='run',
     help='Output directory for model and training stats.')
 absl.app.flags.DEFINE_integer(
-    name='num_sequences', default=3175419, help='Number of training example steps.')
-absl.app.flags.DEFINE_integer(
     name='seq_length', default=128,
     help='Number of sequence elements.')
 absl.app.flags.DEFINE_integer(
@@ -74,12 +73,19 @@ absl.app.flags.DEFINE_enum(
 absl.app.flags.DEFINE_integer(
     name='padding_size', default=-1,
     help='Padding size (for internal usage, no setting from input).')
+absl.app.flags.DEFINE_integer(
+    name='save_summary_steps', default=500,
+    help='save_summary_steps')
+absl.app.flags.DEFINE_integer(
+    name='save_checkpoints_steps', default=500,
+    help='save_checkpoints_steps')
 
 def run_experiment(arg=None):
     """Run the experiment."""
 
+    num_sequences = utils.count_files_lines_in_dir(FLAGS.train_dir, '*.csv', True)
     # Approximate steps per epoch
-    steps_per_epoch = int(FLAGS.num_sequences / FLAGS.batch_size / FLAGS.seq_length)
+    steps_per_epoch = int(num_sequences / FLAGS.batch_size / FLAGS.seq_length)
     max_steps = steps_per_epoch * FLAGS.train_epochs
 
     # Model parameters
@@ -114,8 +120,8 @@ def run_experiment(arg=None):
     # Run config
     run_config = tf.estimator.RunConfig(
         model_dir=FLAGS.model_dir,
-        save_summary_steps=500,
-        save_checkpoints_steps=500)
+        save_summary_steps=FLAGS.save_summary_steps,
+        save_checkpoints_steps=FLAGS.save_checkpoints_steps)
 
     # Define the estimator
     estimator = tf.estimator.Estimator(
