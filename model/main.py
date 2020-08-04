@@ -1,8 +1,8 @@
 import os
+import absl
 import itertools
 import numpy as np
 import tensorflow as tf
-import absl
 import math
 import best_checkpoint_exporter
 import resnet_cnn
@@ -83,10 +83,11 @@ absl.app.flags.DEFINE_integer(
 def run_experiment(arg=None):
     """Run the experiment."""
 
-    num_sequences = utils.count_files_lines_in_dir(FLAGS.train_dir, '*.csv', True)
+    # Do not calculate num_sequences, steps_per_epoch and max_steps if mode is 'predict_and_export_csv'
+    num_sequences = utils.count_files_lines_in_dir(FLAGS.train_dir, '*.csv', True) if FLAGS.mode =='train_and_evaluate' else 0
     # Approximate steps per epoch
     steps_per_epoch = int(num_sequences / FLAGS.batch_size / FLAGS.seq_length)
-    max_steps = steps_per_epoch * FLAGS.train_epochs
+    max_steps = steps_per_epoch * FLAGS.train_epochs if FLAGS.mode =='train_and_evaluate' else None
 
     # Model parameters
     params = tf.contrib.training.HParams(

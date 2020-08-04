@@ -13,10 +13,10 @@ logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s: %(message)s',
 
 FLAGS = absl.app.flags.FLAGS
 absl.app.flags.DEFINE_enum(
-    name='eval_module', default='eval', enum_values=['eval', 'eval2'], 
+    name='eval_module', default='eval2', enum_values=['eval', 'eval2'], 
     help='eval module to use')
 absl.app.flags.DEFINE_string(
-    name='root_dir', default=r'C:\H\PhD\ORIBA\Model\F1\more\est.d4ks1357d2tl.valid.cl.b256.93.64_std_uni_no_smo.fixed_input.sh', help='root directory to find all .sh files')
+    name='root_dir', default=r'C:\H\OneDrive - The University Of Newcastle\H\PhD\ORIBA\Phase1\BestModel64\est.d4ks1357d2tl.valid.cl.b256.93.64_std_uni_no_smo.dis.sh', help='root directory to find all .sh files')
 absl.app.flags.DEFINE_boolean(
     name='overwrite', default=False, help='overwrite existing prob files and calculate the metrics if true')
 absl.app.flags.DEFINE_boolean(
@@ -221,7 +221,7 @@ def read_sh_file(sh_file_fullname):
     base_dir =''
     for line in lines:
         if line.startswith('cd'):
-            base_dir = line.split()[1]
+            base_dir = line[3:]
         elif line.startswith('python'):
             words=line.split()
             if words[0] == 'python' and words[1] == 'main.py':

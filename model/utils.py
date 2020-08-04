@@ -1,12 +1,10 @@
 import os
+import absl
 import shutil
-import logging
 from pathlib import Path
 import ntpath
 import glob
 
-logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s: %(message)s',
-    datefmt='%H:%M:%S', level=logging.INFO)
 
 def get_bool(boolean_string):
     if boolean_string not in {'False', 'True'}:
@@ -22,7 +20,7 @@ def copy_file(full_file_name, copy_to_dir):
     if os.path.isfile(full_file_name):
         shutil.copy(full_file_name, copy_to_dir)    
     else:
-        logging.error("file {0} does not exist.".format(full_file_name))
+        absl.logging.error("file {0} does not exist.".format(full_file_name))
 
 def move_file(file_name, soure, destination):
     source_file_fullname=os.path.join(soure,file_name)
@@ -32,7 +30,7 @@ def move_file(file_name, soure, destination):
             os.remove(destination_file_fullname)
         shutil.move(source_file_fullname, destination_file_fullname)
     else:
-        logging.error("file {0} does not exist.".format(source_file_fullname))
+        absl.logging.error("file {0} does not exist.".format(source_file_fullname))
 
 def get_immediate_subdirnames(root_dir):
     return [name for name in os.listdir(root_dir)
@@ -84,6 +82,12 @@ def calc_precision(tp, fp, rounding_digits = None):
     if rounding_digits != None:
         precision = round(precision, rounding_digits)
     return precision
+
+def calc_f1(precision, recall, rounding_digits = None):
+    f1 = 2 * precision * recall / (precision + recall)
+    if rounding_digits != None:
+        f1 = round(f1, rounding_digits)
+    return f1
 
 def count_file_lines(filename, exclude_first_line = False):
     with open(filename) as f:
