@@ -79,12 +79,12 @@ def add_other_labels(prob_dir, col_label, col_prob, eval_dir, prob_new_dir, move
 def main(args=None):
     col_label = 1
     col_prob = 2
-    add_other_labels(args.prob_dir, col_label, col_prob, args.eval_dir, args.prob_new_dir)
+    add_other_labels(args.prob_dir, col_label, col_prob, args.eval_dir, args.prob_new_dir,False) #2020-06-03 : this should be false from now on since the problem has ben fixed
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Add other labels to prob files')
-    parser.add_argument('--prob_dir', type=str, default=r'C:\H\PhD\ORIBA\Model\F1\more\est.d4ks1357d2tl.valid.cl.b256.93.64_std_uni_no_smo.fixed_input\best_checkpoints\25000\prob_original', nargs='?', help='Directory that contains prob data.')
-    parser.add_argument('--prob_new_dir', type=str, default=r'C:\H\PhD\ORIBA\Model\F1\more\est.d4ks1357d2tl.valid.cl.b256.93.64_std_uni_no_smo.fixed_input\best_checkpoints\25000\prob', nargs='?', help='Directory that contains prob data.')
-    parser.add_argument('--eval_dir', type=str, default=r'C:\H\PhD\ORIBA\Model\FileGen\OREBA\64_std_uni_no_smo', nargs='?', help='Directory that contains eval data.')
+    parser.add_argument('--prob_dir', type=str, default=r'C:\H\OneDrive - The University Of Newcastle\H\PhD\ORIBA\Phase1\BestModel64\est.d4ks1357d2tl.valid.cl.b256.93.64_std_uni_no_smo.dis\best_checkpoints\96000\prob_original', nargs='?', help='Directory that contains prob data.')
+    parser.add_argument('--prob_new_dir', type=str, default=r'C:\H\OneDrive - The University Of Newcastle\H\PhD\ORIBA\Phase1\BestModel64\est.d4ks1357d2tl.valid.cl.b256.93.64_std_uni_no_smo.dis\best_checkpoints\96000\prob', nargs='?', help='Directory that contains prob data.')
+    parser.add_argument('--eval_dir', type=str, default=r'\\10.2.224.9\c3140147\input\OREBA.dis\64_std_uni_no_smo\eval', nargs='?', help='Directory that contains eval data.')
     args = parser.parse_args()
     main(args)

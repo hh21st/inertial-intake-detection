@@ -43,7 +43,7 @@ if 'col_prob' not in FLAGS.__flags.keys():
 absl.app.flags.DEFINE_string(
     name='src_dir', default=r'\\uncle.newcastle.edu.au\entities\research\oreba\OREBA\Phase 1\Synchronised', help='Directory to search for data.')
 absl.app.flags.DEFINE_string(
-    name='dom_hand_info_file_name', default='most_used_hand.csv', help='the name of the file that contains the dominant hand info')
+    name='dom_hand_info_file_name', default='dominant_hand.csv', help='the name of the file that contains the dominant hand info')
 
 
 CSV_SUFFIX = '*.csv'
@@ -183,9 +183,9 @@ def eval_stage_2(dets, labels, labels_2, labels_3, labels_4, frame_ids, p_ids):
     
     idxs_tp = [split_idx for split_idx in idxs_t if np.sum(dets[split_idx])>0]
     
-    idxs_tp_labels2_Eat = [idx_tp for idx_tp in idxs_tp if labels_2[idx_tp][0]=='Eat']
-    idxs_tp_labels2_Drink = [idx_tp for idx_tp in idxs_tp if labels_2[idx_tp][0]=='Drink']
-    idxs_tp_labels2_Lick = [idx_tp for idx_tp in idxs_tp if labels_2[idx_tp][0]=='Lick']
+    idxs_tp_labels2_Eat = [idx_tp for idx_tp in idxs_tp if labels_2[idx_tp][0]=='Intake-Eat']
+    idxs_tp_labels2_Drink = [idx_tp for idx_tp in idxs_tp if labels_2[idx_tp][0]=='Intake-Drink']
+    idxs_tp_labels2_Lick = [idx_tp for idx_tp in idxs_tp if labels_2[idx_tp][0]=='Intake-Lick']
     idxs_tp_labels2_Idle = [idx_tp for idx_tp in idxs_tp if labels_2[idx_tp][0]=='Idle']
     
     idxs_tp_labels2_Eat_len = len(idxs_tp_labels2_Eat)
@@ -237,9 +237,9 @@ def eval_stage_2(dets, labels, labels_2, labels_3, labels_4, frame_ids, p_ids):
 ####
     idxs_fn = [split_idx for split_idx in idxs_t if np.sum(dets[split_idx])<=0]
     
-    idxs_fn_labels2_Eat = [idx_fn for idx_fn in idxs_fn if labels_2[idx_fn][0]=='Eat']
-    idxs_fn_labels2_Drink = [idx_fn for idx_fn in idxs_fn if labels_2[idx_fn][0]=='Drink']
-    idxs_fn_labels2_Lick = [idx_fn for idx_fn in idxs_fn if labels_2[idx_fn][0]=='Lick']
+    idxs_fn_labels2_Eat = [idx_fn for idx_fn in idxs_fn if labels_2[idx_fn][0]=='Intake-Eat']
+    idxs_fn_labels2_Drink = [idx_fn for idx_fn in idxs_fn if labels_2[idx_fn][0]=='Intake-Drink']
+    idxs_fn_labels2_Lick = [idx_fn for idx_fn in idxs_fn if labels_2[idx_fn][0]=='Intake-Lick']
     idxs_fn_labels2_Idle = [idx_fn for idx_fn in idxs_fn if labels_2[idx_fn][0]=='Idle']
     
     idxs_fn_labels2_Eat_len = len(idxs_fn_labels2_Eat)
