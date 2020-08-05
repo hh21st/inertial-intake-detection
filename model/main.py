@@ -15,6 +15,7 @@ import cnn_blstm
 import fusion
 from tensorflow.python.platform import gfile
 import utils
+from google.protobuf import text_format
 
 absl.logging.set_verbosity(absl.logging.INFO)
 NUM_SHARDS = 10
@@ -28,7 +29,7 @@ absl.app.flags.DEFINE_string(
 absl.app.flags.DEFINE_string(
     name='prob_dir', default='', help='Directory for eval data.')
 absl.app.flags.DEFINE_enum(
-    name='mode', default='train_and_evaluate', enum_values=['train_and_evaluate', 'predict_and_export_csv'],
+    name='mode', default='train_and_evaluate', enum_values=['train_and_evaluate', 'predict_and_export_csv', 'export_inference_saved_model', 'calculate_flops_from_pb'],
     help='What mode should tensorflow be started in')
 absl.app.flags.DEFINE_enum(
     name='fusion', default='earliest', enum_values=['none', 'earliest', 'accel_gyro', 'dom_ndom', 'accel_gyro_dom_ndom'],
@@ -162,6 +163,10 @@ def run_experiment(arg=None):
     elif FLAGS.mode == "predict_and_export_csv":
         seq_skip = FLAGS.seq_length - 1
         predict_and_export_csv(estimator, eval_input_fn, FLAGS.eval_dir, seq_skip, params)
+    elif FLAGS.mode == "export_inference_saved_model":
+        export_inference_saved_model(estimator)
+    elif FLAGS.mode == "calculate_flops_from_pb":
+        calculate_flops_from_pb()
 
 
 def model_fn(features, labels, mode, params):
@@ -504,6 +509,49 @@ def _get_transformation_parser(is_training):
         return features, labels
 
     return transformation_parser
+
+
+def export_inference_saved_model(estimator):
+    # Export SavedModel with batch size 1 for inference
+    def serving_input_receiver_fn():
+        serialized_example = tf.placeholder(
+          dtype=tf.string, shape=[], name='input_inert_tensor')
+        received_tensors = serialized_example
+        features = tf.io.parse_single_example(
+          serialized_example, {
+            'example/inert': tf.io.FixedLenFeature([1,FLAGS.seq_length,12], dtype=tf.float32)
+        })
+        features = features['example/inert']
+        return tf.estimator.export.TensorServingInputReceiver(features, received_tensors)
+    estimator_path = estimator.export_saved_model('saved_model_inference', serving_input_receiver_fn)
+
+
+def calculate_flops_from_pb():
+    """
+    First freeze the saved model, for example:
+        python ./venv/bin/freeze_graph --input_saved_model_dir=saved_model_inference/1596603785 --output_graph=frozen_inference_graph.pb --output_node_names=softmax_tensor
+    """
+    # Load pbtxt
+    def load_graph_from_pbtxt(file):
+        with open(file) as f:
+            graph_def = text_format.Parse(f.read(), tf.GraphDef())
+        with tf.Graph().as_default() as graph:
+            tf.import_graph_def(graph_def, name='')
+        return graph
+    # Load pb
+    def load_graph_from_pb(file):
+        with gfile.FastGFile(file, 'rb') as f:
+            graph_def = tf.GraphDef()
+            graph_def.ParseFromString(f.read())
+        with tf.Graph().as_default() as graph:
+            tf.import_graph_def(graph_def, name='')
+        return graph
+    # Load graph and calculate flops
+    #g2 = load_graph_from_pbtxt('run/graph.pbtxt')
+    g2 = load_graph_from_pb('frozen_inference_graph.pb')
+    with g2.as_default():
+        flops = tf.profiler.profile(g2, options = tf.profiler.ProfileOptionBuilder.float_operation())
+        print('FLOP', flops.total_float_ops)
 
 
 def predict_and_export_csv(estimator, eval_input_fn, eval_dir, seq_skip, params):
